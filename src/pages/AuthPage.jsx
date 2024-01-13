@@ -1,4 +1,12 @@
-import { FacebookAuthProvider, GoogleAuthProvider, createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import {
+  FacebookAuthProvider,
+  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
+  getAuth,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signInWithPopup
+} from "firebase/auth";
 import { useContext, useEffect, useState } from "react";
 import { Button, Col, Form, Image, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +21,7 @@ export default function AuthPage() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [responseMessage, setResponseMessage] = useState(null);
 
   const navigate = useNavigate();
   const auth = getAuth();
@@ -40,16 +48,23 @@ export default function AuthPage() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setErrorMessage("");
+    setResponseMessage(null);
 
     try {
       await signInWithEmailAndPassword(auth, username, password);
     } catch (error) {
+      console.error(error);
       if (error.code === "auth/invalid-credential") {
-        setErrorMessage("Invalid username and/or password.");
+        setResponseMessage({
+          message: "Invalid username and/or password.",
+          className: "text-danger"
+        });
       }
       else {
-        setErrorMessage("Something went wrong. Please try again later.")
+        setResponseMessage({
+          message: "Something went wrong. Please try again later.",
+          className: "text-danger"
+        });
       }
     }
   };
@@ -76,9 +91,37 @@ export default function AuthPage() {
     }
   };
 
+  const handlePasswordReset = async () => {
+    setResponseMessage(null);
+
+    try {
+      await sendPasswordResetEmail(auth, username)
+        .then(() =>
+          setResponseMessage({
+            message: "Password reset email sent!",
+            className: "text-success"
+          })
+        );
+    } catch (error) {
+      console.error(error);
+      if (error.code === "auth/missing-email") {
+        setResponseMessage({
+          message: "Please enter an email.",
+          className: "text-danger"
+        });
+      }
+      else {
+        setResponseMessage({
+          message: "Something went wrong. Please try again later.",
+          className: "text-danger"
+        });
+      }
+    }
+  };
+
   const handleClose = () => {
     setModalShow(null);
-    setErrorMessage("");
+    setResponseMessage(null);
   };
 
   return (
@@ -159,7 +202,7 @@ export default function AuthPage() {
                 />
               </Form.Group>
 
-              <Form.Group className="mb-3" controlId="formBasicPassword">
+              <Form.Group className={modalShow !== "login" ? "mb-3" : ""} controlId="formBasicPassword">
                 <Form.Control
                   onChange={(e) => setPassword(e.target.value)}
                   type="password"
@@ -167,21 +210,31 @@ export default function AuthPage() {
                 />
               </Form.Group>
 
-              {errorMessage &&
-                <p className="text-danger" style={{ fontSize: 15 }}>
-                  {errorMessage}
+              {modalShow === "signup" ? (
+                <p style={{ fontSize: 12 }}>
+                  By signing up, you agree to the Terms of Service and Privacy
+                  Policy, including Cookie Use. SigmaTweets may use your contact
+                  information, including your email address and phone number for
+                  purposes outlined in our Privacy Policy, like keeping your
+                  account secure and personalising our services, including ads.
+                  Learn more. Others will be able to find you by email or phone
+                  number, when provided, unless you choose otherwise here.
+                </p>
+              ) : (
+                <p
+                  onClick={handlePasswordReset}
+                  style={{ cursor: "pointer", fontSize: 14, width: "fit-content" }}
+                >
+                  Forgot password?
+                </p>
+              )}
+
+              {responseMessage &&
+                <p className={responseMessage.className} style={{ fontSize: 15 }}>
+                  {responseMessage.message}
                 </p>
               }
 
-              <p style={{ fontSize: 12 }}>
-                By signing up, you agree to the Terms of Service and Privacy
-                Policy, including Cookie Use. SigmaTweets may use your contact
-                information, including your email address and phone number for
-                purposes outlined in our Privacy Policy, like keeping your
-                account secure and personalising our services, including ads.
-                Learn more. Others will be able to find you by email or phone
-                number, when provided, unless you choose otherwise here.
-              </p>
               <Button className="rounded-pill" type="submit">
                 {modalShow === "signup" ? "Sign up" : "Log in"}
               </Button>
