@@ -43,6 +43,24 @@ export default function AuthPage() {
       console.log(res.user);
     } catch (error) {
       console.error(error);
+      if (error.code === "auth/weak-password") {
+        setResponseMessage({
+          message: "Password should be at least 6 characters.",
+          className: "text-danger"
+        });
+      }
+      else if (error.code === "auth/email-already-in-use") {
+        setResponseMessage({
+          message: "Please try another email.",
+          className: "text-danger"
+        });
+      }
+      else {
+        setResponseMessage({
+          message: "Something went wrong. Please try again later.",
+          className: "text-danger"
+        });
+      }
     }
   };
 
