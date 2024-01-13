@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { FacebookAuthProvider, GoogleAuthProvider, createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { useContext, useEffect, useState } from "react";
 import { Button, Col, Form, Image, Modal, Row } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
@@ -54,11 +54,23 @@ export default function AuthPage() {
     }
   };
 
-  const provider = new GoogleAuthProvider();
+  const googleProvider = new GoogleAuthProvider();
   const handleGoogleLogin = async (e) => {
     e.preventDefault();
+
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const facebookProvider = new FacebookAuthProvider();
+  const handleFacebookLogin = async (e) => {
+    e.preventDefault();
+
+    try {
+      await signInWithPopup(auth, facebookProvider);
     } catch (error) {
       console.error(error);
     }
@@ -93,6 +105,13 @@ export default function AuthPage() {
             onClick={handleGoogleLogin}
           >
             <i className="bi bi-google"></i> Sign up with Google
+          </Button>
+          <Button
+            className="rounded-pill"
+            variant="outline-dark"
+            onClick={handleFacebookLogin}
+          >
+            <i className="bi bi-facebook"></i> Sign up with Facebook
           </Button>
           <Button className="rounded-pill" variant="outline-dark">
             <i className="bi bi-apple"></i> Sign up with Apple
