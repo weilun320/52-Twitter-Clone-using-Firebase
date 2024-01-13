@@ -10,8 +10,11 @@ export default function AuthPage() {
   const [modalShow, setModalShow] = useState(null);
   const handleShowSignUp = () => setModalShow("signup");
   const handleShowLogin = () => setModalShow("login");
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
   const navigate = useNavigate();
   const auth = getAuth();
   const { currentUser } = useContext(AuthContext);
@@ -22,6 +25,7 @@ export default function AuthPage() {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
+
     try {
       const res = await createUserWithEmailAndPassword(
         auth,
@@ -33,12 +37,20 @@ export default function AuthPage() {
       console.error(error);
     }
   };
+
   const handleLogin = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
+
     try {
       await signInWithEmailAndPassword(auth, username, password);
     } catch (error) {
-      console.error(error.message);
+      if (error.code === "auth/invalid-credential") {
+        setErrorMessage("Invalid username and/or password.");
+      }
+      else {
+        setErrorMessage("Something went wrong. Please try again later.")
+      }
     }
   };
 
@@ -52,7 +64,10 @@ export default function AuthPage() {
     }
   };
 
-  const handleClose = () => setModalShow(null);
+  const handleClose = () => {
+    setModalShow(null);
+    setErrorMessage("");
+  };
 
   return (
     <Row>
@@ -132,6 +147,12 @@ export default function AuthPage() {
                   placeholder="Password"
                 />
               </Form.Group>
+
+              {errorMessage &&
+                <p className="text-danger" style={{ fontSize: 15 }}>
+                  {errorMessage}
+                </p>
+              }
 
               <p style={{ fontSize: 12 }}>
                 By signing up, you agree to the Terms of Service and Privacy
