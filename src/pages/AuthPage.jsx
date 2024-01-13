@@ -1,10 +1,12 @@
 import {
   FacebookAuthProvider,
   GoogleAuthProvider,
+  RecaptchaVerifier,
   createUserWithEmailAndPassword,
   getAuth,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signInWithPhoneNumber,
   signInWithPopup
 } from "firebase/auth";
 import { useContext, useEffect, useState } from "react";
@@ -22,6 +24,10 @@ export default function AuthPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [responseMessage, setResponseMessage] = useState(null);
+
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
 
   const navigate = useNavigate();
   const auth = getAuth();
@@ -43,23 +49,39 @@ export default function AuthPage() {
       console.log(res.user);
     } catch (error) {
       console.error(error);
-      if (error.code === "auth/weak-password") {
-        setResponseMessage({
-          message: "Password should be at least 6 characters.",
-          className: "text-danger"
-        });
-      }
-      else if (error.code === "auth/email-already-in-use") {
-        setResponseMessage({
-          message: "Please try another email.",
-          className: "text-danger"
-        });
-      }
-      else {
-        setResponseMessage({
-          message: "Something went wrong. Please try again later.",
-          className: "text-danger"
-        });
+
+      setResponseMessage({ className: "text-danger", type: "signup" });
+      switch (error.code) {
+        case "auth/email-already-in-use":
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Please try another email.",
+          }));
+          break;
+        case "auth/invalid-email":
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Please enter a valid email."
+          }));
+          break;
+        case "auth/missing-password":
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Please enter a password.",
+          }));
+          break;
+        case "auth/weak-password":
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Password should be at least 6 characters.",
+          }));
+          break;
+        default:
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Something went wrong. Please try again later.",
+          }));
+          break;
       }
     }
   };
@@ -72,17 +94,33 @@ export default function AuthPage() {
       await signInWithEmailAndPassword(auth, username, password);
     } catch (error) {
       console.error(error);
-      if (error.code === "auth/invalid-credential") {
-        setResponseMessage({
-          message: "Invalid username and/or password.",
-          className: "text-danger"
-        });
-      }
-      else {
-        setResponseMessage({
-          message: "Something went wrong. Please try again later.",
-          className: "text-danger"
-        });
+
+      setResponseMessage({ className: "text-danger", type: "login" });
+      switch (error.code) {
+        case "auth/invalid-credential":
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Invalid username and/or password.",
+          }));
+          break;
+        case "auth/invalid-email":
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Please enter a valid email."
+          }));
+          break;
+        case "auth/missing-password":
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Please enter a password.",
+          }));
+          break;
+        default:
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Something went wrong. Please try again later.",
+          }));
+          break;
       }
     }
   };
@@ -117,22 +155,87 @@ export default function AuthPage() {
         .then(() =>
           setResponseMessage({
             message: "Password reset email sent!",
-            className: "text-success"
+            className: "",
+            type: "reset",
           })
         );
     } catch (error) {
       console.error(error);
-      if (error.code === "auth/missing-email") {
-        setResponseMessage({
-          message: "Please enter an email.",
-          className: "text-danger"
-        });
+
+      setResponseMessage({ className: "text-danger", type: "reset" });
+      switch (error.code) {
+        case "auth/missing-email":
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Please enter an email.",
+          }));
+          break;
+        default:
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Something went wrong. Please try again later.",
+          }));
+          break;
       }
-      else {
-        setResponseMessage({
-          message: "Something went wrong. Please try again later.",
-          className: "text-danger"
-        });
+    }
+  };
+
+  const handlePhoneLogin = async () => {
+    setResponseMessage(null);
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {});
+
+    const appVerifier = window.recaptchaVerifier;
+
+    try {
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+
+      window.confirmationResult = confirmationResult;
+      setShowVerification(true);
+    } catch (error) {
+      console.error("Phone authentication error:", error);
+
+      setResponseMessage({ className: "text-danger", type: "phone" });
+      switch (error.code) {
+        case "auth/invalid-phone-number":
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Please enter a valid phone number.",
+          }));
+          break;
+        default:
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Something went wrong. Please try again later.",
+          }));
+          break;
+      }
+    }
+  };
+
+  const handleVerificationCode = async (e) => {
+    e.preventDefault();
+    setResponseMessage(null);
+
+    try {
+      const res = await window.confirmationResult.confirm(verificationCode);
+      console.log(res.user);
+    } catch (error) {
+      console.error(error);
+
+      setResponseMessage({ className: "text-danger", type: "verify" });
+      switch (error.code) {
+        case "auth/invalid-verification-code":
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Invalid verification code.",
+          }));
+          break;
+        default:
+          setResponseMessage((prevMessage) => ({
+            ...prevMessage,
+            message: "Something went wrong. Please try again later.",
+          }));
+          break;
       }
     }
   };
@@ -202,61 +305,151 @@ export default function AuthPage() {
           centered
         >
           <Modal.Body>
-            <h2 className="mb-4" style={{ fontWeight: "bold" }}>
-              {modalShow === "signup"
-                ? "Create your account"
-                : "Log in to your account"}
-            </h2>
+            {showVerification ? (
+              <>
+                <h2 className="mb-4 fw-bold">
+                  <span
+                    className="fw-normal fs-3 me-2"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setShowVerification(false)}
+                  >
+                    <i className="bi bi-arrow-left"></i>
+                  </span>
+                  Verify your phone number
+                </h2>
 
-            <Form
-              className="d-grid gap-2 px-5"
-              onSubmit={modalShow === "signup" ? handleSignUp : handleLogin}
-            >
-              <Form.Group className="mb-3" controlId="formBasicEmai">
-                <Form.Control
-                  onChange={(e) => setUsername(e.target.value)}
-                  type="email"
-                  placeholder="Enter email"
-                />
-              </Form.Group>
+                <div className="px-5 text-center">
+                  <p className="text-start">A verification code has been sent to your phone number.</p>
 
-              <Form.Group className={modalShow !== "login" ? "mb-3" : ""} controlId="formBasicPassword">
-                <Form.Control
-                  onChange={(e) => setPassword(e.target.value)}
-                  type="password"
-                  placeholder="Password"
-                />
-              </Form.Group>
+                  <Form.Group className="mb-3" controlId="verification-code">
+                    <Form.Control
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                      placeholder="Enter verification code"
+                      type="text"
+                    />
+                  </Form.Group>
 
-              {modalShow === "signup" ? (
-                <p style={{ fontSize: 12 }}>
-                  By signing up, you agree to the Terms of Service and Privacy
-                  Policy, including Cookie Use. SigmaTweets may use your contact
-                  information, including your email address and phone number for
-                  purposes outlined in our Privacy Policy, like keeping your
-                  account secure and personalising our services, including ads.
-                  Learn more. Others will be able to find you by email or phone
-                  number, when provided, unless you choose otherwise here.
-                </p>
-              ) : (
-                <p
-                  onClick={handlePasswordReset}
-                  style={{ cursor: "pointer", fontSize: 14, width: "fit-content" }}
+                  {responseMessage && responseMessage.type === "verify" &&
+                    <p className={`${responseMessage.className} text-start`} style={{ fontSize: 15 }}>
+                      {responseMessage.message}
+                    </p>
+                  }
+
+                  <Button className="rounded-pill" onClick={handleVerificationCode}>
+                    Verify phone number
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="mb-4" style={{ fontWeight: "bold" }}>
+                  {modalShow === "signup"
+                    ? "Create your account"
+                    : "Log in to your account"}
+                </h2>
+
+                <Form
+                  className="d-grid gap-2 px-5"
+                  onSubmit={modalShow === "signup" ? handleSignUp : handleLogin}
                 >
-                  Forgot password?
-                </p>
-              )}
+                  <Form.Group className="mb-3" controlId="username">
+                    <Form.Control
+                      onChange={(e) => setUsername(e.target.value)}
+                      type="email"
+                      placeholder="Enter email"
+                    />
+                  </Form.Group>
 
-              {responseMessage &&
-                <p className={responseMessage.className} style={{ fontSize: 15 }}>
-                  {responseMessage.message}
-                </p>
-              }
+                  <Form.Group className={modalShow !== "login" ? "mb-3" : ""} controlId="password">
+                    <Form.Control
+                      onChange={(e) => setPassword(e.target.value)}
+                      type="password"
+                      placeholder="Password"
+                    />
+                  </Form.Group>
 
-              <Button className="rounded-pill" type="submit">
-                {modalShow === "signup" ? "Sign up" : "Log in"}
-              </Button>
-            </Form>
+                  {modalShow === "signup" ? (
+                    <p style={{ fontSize: 12 }}>
+                      By signing up, you agree to the Terms of Service and Privacy
+                      Policy, including Cookie Use. SigmaTweets may use your contact
+                      information, including your email address and phone number for
+                      purposes outlined in our Privacy Policy, like keeping your
+                      account secure and personalising our services, including ads.
+                      Learn more. Others will be able to find you by email or phone
+                      number, when provided, unless you choose otherwise here.
+                    </p>
+                  ) : (
+                    <p
+                      onClick={handlePasswordReset}
+                      style={{ cursor: "pointer", fontSize: 14, width: "fit-content" }}
+                    >
+                      Forgot password?
+                    </p>
+                  )}
+
+                  {responseMessage && responseMessage.type !== "phone" &&
+                    <p className={responseMessage.className} style={{ fontSize: 15 }}>
+                      {responseMessage.message}
+                    </p>
+                  }
+
+                  <Button className="rounded-pill" type="submit">
+                    {modalShow === "signup" ? "Sign up" : "Log in"}
+                  </Button>
+                </Form>
+                {modalShow === "login" && (
+                  <div className="px-5 text-center">
+                    <p className="my-3">or</p>
+                    <Button
+                      className="mx-1 rounded-circle"
+                      variant="outline-dark"
+                      style={{ height: 42 }}
+                      onClick={handleGoogleLogin}
+                    >
+                      <i className="bi bi-google"></i>
+                    </Button>
+                    <Button
+                      className="mx-1 rounded-circle"
+                      variant="outline-dark"
+                      style={{ height: 42 }}
+                      onClick={handleFacebookLogin}
+                    >
+                      <i className="bi bi-facebook"></i>
+                    </Button>
+                    <Button
+                      className="mx-1 rounded-circle"
+                      variant="outline-dark"
+                      style={{ height: 42 }}
+                    >
+                      <i className="bi bi-apple"></i>
+                    </Button>
+                    <p className="my-3">or</p>
+                    <Form.Group className="mb-3" controlId="phone-number">
+                      <Form.Control
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        type="text"
+                        placeholder="Enter phone number"
+                      />
+                    </Form.Group>
+
+                    {responseMessage && responseMessage.type === "phone" &&
+                      <p className={`${responseMessage.className} text-start`} style={{ fontSize: 15 }}>
+                        {responseMessage.message}
+                      </p>
+                    }
+
+                    <Button
+                      className="rounded-pill"
+                      variant="outline-dark"
+                      onClick={handlePhoneLogin}
+                    >
+                      <i className="bi bi-phone"></i> Sign in with Phone
+                    </Button>
+                    <div className="mt-3" id="recaptcha-container"></div>
+                  </div>
+                )}
+              </>
+            )}
           </Modal.Body>
         </Modal>
       </Col>
