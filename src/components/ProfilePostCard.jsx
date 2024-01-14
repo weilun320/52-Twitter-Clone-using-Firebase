@@ -2,8 +2,9 @@ import { useContext, useState } from "react";
 import { Button, Col, Image, Row } from "react-bootstrap";
 import { useDispatch } from "react-redux";
 import { AuthContext } from "./AuthProvider";
-import { deletePost, likePost, removeLikeFromPost } from "../features/posts/postsSlice";
+import { likePost, removeLikeFromPost } from "../features/posts/postsSlice";
 import UpdatePostModal from "./UpdatePostModal";
+import DeletePostModal from "./DeletePostModal";
 
 export default function ProfilePostCard({ post }) {
   const { content, id: postId, imageUrl } = post;
@@ -17,10 +18,11 @@ export default function ProfilePostCard({ post }) {
 
   const pic = "https://pbs.twimg.com/profile_images/1587405892437221376/h167Jlb2_400x400.jpg";
 
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showModal, setShowModal] = useState(null);
 
-  const handleShowUpdateModal = () => setShowUpdateModal(true);
-  const handleCloseUpdateModal = () => setShowUpdateModal(false);
+  const handleShowUpdate = () => setShowModal("update");
+  const handleShowDelete = () => setShowModal("delete");
+  const handleClose = () => setShowModal(null);
 
   const handleLike = () => (isLiked ? removeFromLikes() : addToLikes());
 
@@ -34,10 +36,6 @@ export default function ProfilePostCard({ post }) {
   const removeFromLikes = () => {
     setLikes(likes.filter((id) => id !== userId));
     dispatch(removeLikeFromPost({ userId, postId }));
-  };
-
-  const handleDelete = () => {
-    dispatch(deletePost({ userId, postId }));
   };
 
   return (
@@ -78,17 +76,22 @@ export default function ProfilePostCard({ post }) {
           <Button variant="light">
             <i className="bi bi-upload"></i>
           </Button>
-          <Button variant="light" onClick={handleShowUpdateModal}>
+          <Button variant="light" onClick={handleShowUpdate}>
             <i className="bi bi-pencil-square"></i>
           </Button>
-          <Button variant="light" onClick={handleDelete}>
+          <Button variant="light" onClick={handleShowDelete}>
             <i className="bi bi-trash"></i>
           </Button>
           <UpdatePostModal
-            show={showUpdateModal}
-            handleClose={handleCloseUpdateModal}
+            show={showModal === "update"}
+            handleClose={handleClose}
             postId={postId}
             originalPostContent={content}
+          />
+          <DeletePostModal
+            show={showModal === "delete"}
+            handleClose={handleClose}
+            postId={postId}
           />
         </div>
       </Col>
