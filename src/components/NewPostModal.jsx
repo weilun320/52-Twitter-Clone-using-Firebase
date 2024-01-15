@@ -24,7 +24,7 @@ export default function NewPostModal({ show, handleClose }) {
     }
 
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
+    if (file && !allowedTypes.includes(file.type)) {
       setErrorMessage("Only JPEG, PNG and GIF images are allowed.");
 
       return;
