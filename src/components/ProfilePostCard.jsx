@@ -55,7 +55,7 @@ export default function ProfilePostCard({ post }) {
         <span> @haris.samingan · Apr 16</span>
         <p>{content}</p>
         <Image src={imageUrl} style={{ width: 150 }} />
-        <div className="d-flex justify-content-between">
+        <div className="d-flex justify-content-between mt-3">
           <Button variant="light">
             <i className="bi bi-chat"></i>
           </Button>
@@ -64,9 +64,9 @@ export default function ProfilePostCard({ post }) {
           </Button>
           <Button variant="light" onClick={handleLike}>
             {isLiked ? (
-              <i className="bi bi-heart-fill text-danger"></i>
+              <i className="bi bi-heart-fill text-danger me-1"></i>
             ) : (
-              <i className="bi bi-heart"></i>
+              <i className="bi bi-heart me-1"></i>
             )}
             {likes.length}
           </Button>

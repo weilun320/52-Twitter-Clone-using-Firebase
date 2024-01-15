@@ -31,7 +31,7 @@ export default function ProfileMidBody() {
         style={{
           width: 150,
           position: "absolute",
-          top: "140px",
+          top: "120px",
           border: "4px solid #F8F9FA",
           marginLeft: 15,
         }}
