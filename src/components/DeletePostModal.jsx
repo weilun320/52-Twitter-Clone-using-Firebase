@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { deletePost } from "../features/posts/postsSlice";
 import { useContext } from "react";
 import { AuthContext } from "./AuthProvider";
+import { deleteAllCommentOfAPost } from "../features/comments/commentsSlice";
 
 export default function DeletePostModal({ show, handleClose, postId }) {
   const dispatch = useDispatch();
@@ -10,6 +11,8 @@ export default function DeletePostModal({ show, handleClose, postId }) {
   const userId = currentUser.uid;
 
   const handleDelete = () => {
+    // Delete the comments under the post
+    dispatch(deleteAllCommentOfAPost({ userId, postId }));
     dispatch(deletePost({ userId, postId }));
   };
 

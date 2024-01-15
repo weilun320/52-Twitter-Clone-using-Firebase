@@ -1,15 +1,18 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Button, Col, Image, Row } from "react-bootstrap";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { AuthContext } from "./AuthProvider";
 import { likePost, removeLikeFromPost } from "../features/posts/postsSlice";
 import UpdatePostModal from "./UpdatePostModal";
 import DeletePostModal from "./DeletePostModal";
+import { fetchCommentByPost } from "../features/comments/commentsSlice";
+import NewCommentModal from "./NewCommentModal";
 
 export default function ProfilePostCard({ post }) {
   const { content, id: postId, imageUrl } = post;
   const [likes, setLikes] = useState(post.likes || []);
   const dispatch = useDispatch();
+  const comments = useSelector((state) => state.comments[postId]);
   const { currentUser } = useContext(AuthContext);
   const userId = currentUser.uid;
 
@@ -22,6 +25,7 @@ export default function ProfilePostCard({ post }) {
 
   const handleShowUpdate = () => setShowModal("update");
   const handleShowDelete = () => setShowModal("delete");
+  const handleShowNewComment = () => setShowModal("comment");
   const handleClose = () => setShowModal(null);
 
   const handleLike = () => (isLiked ? removeFromLikes() : addToLikes());
@@ -37,6 +41,10 @@ export default function ProfilePostCard({ post }) {
     setLikes(likes.filter((id) => id !== userId));
     dispatch(removeLikeFromPost({ userId, postId }));
   };
+
+  useEffect(() => {
+    dispatch(fetchCommentByPost({ userId, postId }));
+  }, [dispatch, postId, userId]);
 
   return (
     <Row
@@ -56,8 +64,9 @@ export default function ProfilePostCard({ post }) {
         <p>{content}</p>
         <Image src={imageUrl} style={{ width: 150 }} />
         <div className="d-flex justify-content-between mt-3">
-          <Button variant="light">
-            <i className="bi bi-chat"></i>
+          <Button variant="light" onClick={handleShowNewComment}>
+            <i className="bi bi-chat me-1"></i>
+            {comments && comments.length}
           </Button>
           <Button variant="light">
             <i className="bi bi-repeat"></i>
@@ -91,6 +100,12 @@ export default function ProfilePostCard({ post }) {
           <DeletePostModal
             show={showModal === "delete"}
             handleClose={handleClose}
+            postId={postId}
+          />
+          <NewCommentModal
+            show={showModal === "comment"}
+            handleClose={handleClose}
+            userId={userId}
             postId={postId}
           />
         </div>
