@@ -2,11 +2,15 @@ import { Button, Col } from "react-bootstrap";
 import IconButton from "../components/IconButton";
 import NewPostModal from "./NewPostModal";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function ProfileSideBar({ handleLogout }) {
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
+
+  const navigate = useNavigate();
+
   return (
     <Col
       sm={2}
@@ -21,7 +25,7 @@ export default function ProfileSideBar({ handleLogout }) {
       <IconButton className="bi bi-journal-text" text="Lists" />
       <IconButton className="bi bi-bookmark" text="Bookmarks" />
       <IconButton className="bi bi-patch-check" text="Verified" />
-      <IconButton className="bi bi-person" text="Profile" />
+      <IconButton className="bi bi-person" text="Profile" onClick={() => navigate("/profile")} />
       <IconButton className="bi bi-filter-circle" text="More" />
       <IconButton
         className="bi bi-door-closed"

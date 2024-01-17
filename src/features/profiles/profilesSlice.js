@@ -3,18 +3,60 @@ import { db, storage } from "../../firebase";
 import { collection, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
-export const fetchProfileByUser = createAsyncThunk(
-  "profiles/fetchByUser",
-  async (userId) => {
+export const fetchProfileByUsername = createAsyncThunk(
+  "profiles/fetchByUsername",
+  async (username, { rejectWithValue }) => {
+    try {
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("username", "==", username));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userId = querySnapshot.docs[0].id;
+
+        const userDocRef = doc(db, `users/${userId}`);
+        const userDoc = await getDoc(userDocRef);
+
+        if (userDoc.exists()) {
+          const data = {
+            id: userDoc.data().id,
+            ...userDoc.data(),
+          }
+          return data;
+        }
+        else {
+          return rejectWithValue("User has not set a profile.");
+        }
+      }
+      else {
+        return rejectWithValue("User not found.");
+      }
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+);
+
+export const fetchProfileByUserId = createAsyncThunk(
+  "profiles/fetchByUserId",
+  async (userId, { rejectWithValue }) => {
     try {
       const profileDocRef = doc(db, `users/${userId}`);
       const profileDocSnap = await getDoc(profileDocRef);
 
       if (profileDocSnap.exists()) {
-        return profileDocSnap.data();
+        const profileData = profileDocSnap.data();
+
+        if ("username" in profileData) {
+          return profileDocSnap.data();
+        }
+        else {
+          return rejectWithValue("Please set your profile.");
+        }
       }
       else {
-        return {};
+        return rejectWithValue("Please set your profile.");
       }
     } catch (error) {
       console.error(error);
@@ -66,13 +108,31 @@ export const saveProfile = createAsyncThunk(
 
 const profilesSlice = createSlice({
   name: "profiles",
-  initialState: { profile: {}, errorMessage: "", loading: true },
+  initialState: { data: null, status: "idle", error: null },
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchProfileByUser.fulfilled, (state, action) => {
-        state.profile = action.payload;
-        state.loading = false;
+      .addCase(fetchProfileByUserId.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchProfileByUserId.fulfilled, (state, action) => {
+        state.status = "success";
+        state.data = action.payload;
+      })
+      .addCase(fetchProfileByUserId.rejected, (state, action) => {
+        state.status = "error";
+        state.error = action.payload;
+      })
+      .addCase(fetchProfileByUsername.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchProfileByUsername.fulfilled, (state, action) => {
+        state.status = "success";
+        state.data = action.payload;
+      })
+      .addCase(fetchProfileByUsername.rejected, (state, action) => {
+        state.status = "error";
+        state.error = action.payload;
       });
   },
 });

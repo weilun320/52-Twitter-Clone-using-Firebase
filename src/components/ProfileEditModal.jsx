@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, FloatingLabel, Form, Image, Modal } from "react-bootstrap";
 import { useDispatch } from "react-redux";
-import { fetchProfileByUser, saveProfile } from "../features/profiles/profilesSlice";
+import { fetchProfileByUserId, saveProfile } from "../features/profiles/profilesSlice";
 
 export default function ProfileEditModal({ show, handleClose, userId, profile }) {
   const [name, setName] = useState("");
@@ -77,7 +77,7 @@ export default function ProfileEditModal({ show, handleClose, userId, profile })
     dispatch(saveProfile({ userId, data: { username, name, bio, profileImageFile, bannerImageFile } }))
       .unwrap()
       .then(() => {
-        dispatch(fetchProfileByUser(userId));
+        dispatch(fetchProfileByUserId(userId));
         handleClose();
       })
       .catch((error) => {
