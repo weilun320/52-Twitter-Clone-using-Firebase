@@ -14,7 +14,7 @@ export default function ProfilePostCard({ post }) {
   const dispatch = useDispatch();
   const comments = useSelector((state) => state.comments[postId]);
   const { currentUser } = useContext(AuthContext);
-  const userId = currentUser.uid;
+  const userId = currentUser ? currentUser.uid : null;
 
   // User has liked the post if their ID is in the likes  array
   const isLiked = likes.includes(userId);

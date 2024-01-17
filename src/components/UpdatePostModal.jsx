@@ -9,7 +9,7 @@ export default function UpdatePostModal({ show, handleClose, postId, originalPos
   const [newFile, setNewFile] = useState(null);
   const dispatch = useDispatch();
   const { currentUser } = useContext(AuthContext);
-  const userId = currentUser.uid;
+  const userId = currentUser ? currentUser.uid : null;
 
   const handleUpdate = () => {
     dispatch(updatePost({ userId, postId, newPostContent, newFile }));

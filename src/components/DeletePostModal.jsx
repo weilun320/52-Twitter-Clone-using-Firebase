@@ -8,7 +8,7 @@ import { deleteAllCommentOfAPost } from "../features/comments/commentsSlice";
 export default function DeletePostModal({ show, handleClose, postId }) {
   const dispatch = useDispatch();
   const { currentUser } = useContext(AuthContext);
-  const userId = currentUser.uid;
+  const userId = currentUser ? currentUser.uid : null;
 
   const handleDelete = () => {
     // Delete the comments under the post

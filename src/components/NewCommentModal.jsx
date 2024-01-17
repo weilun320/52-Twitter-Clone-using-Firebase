@@ -6,7 +6,7 @@ import { commentPost } from "../features/comments/commentsSlice";
 
 export default function NewCommentModal({ show, handleClose, userId, postId }) {
   const { currentUser } = useContext(AuthContext);
-  const currentUserId = currentUser.uid;
+  const currentUserId = currentUser ? currentUser.uid : null;
 
   const [commentContent, setCommentContent] = useState("");
   const dispatch = useDispatch();
