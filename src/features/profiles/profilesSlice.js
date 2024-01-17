@@ -1,0 +1,80 @@
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { db, storage } from "../../firebase";
+import { collection, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+
+export const fetchProfileByUser = createAsyncThunk(
+  "profiles/fetchByUser",
+  async (userId) => {
+    try {
+      const profileDocRef = doc(db, `users/${userId}`);
+      const profileDocSnap = await getDoc(profileDocRef);
+
+      if (profileDocSnap.exists()) {
+        return profileDocSnap.data();
+      }
+      else {
+        return {};
+      }
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+);
+
+export const saveProfile = createAsyncThunk(
+  "profiles/saveProfile",
+  async ({ userId, data }, { rejectWithValue }) => {
+    const { username, name, bio, profileImageFile, bannerImageFile } = data;
+
+    try {
+      const usersRef = collection(db, "users");
+
+      // Check if the username is already in use across all user profiles
+      const usernameQuery = query(usersRef, where("username", "==", username));
+      const existingProfiles = await getDocs(usernameQuery);
+
+      // Username is unique or belongs to the current user, proceed with updating or creating the user profile
+      if (existingProfiles.size === 0 || (existingProfiles.size === 1 && existingProfiles.docs[0].id === userId)) {
+        let profileImageUrl = "";
+        if (profileImageFile !== null) {
+          const imageRef = ref(storage, `profiles/${profileImageFile.name}`);
+          const response = await uploadBytes(imageRef, profileImageFile);
+          profileImageUrl = await getDownloadURL(response.ref);
+        }
+
+        let bannerImageUrl = "";
+        if (bannerImageFile !== null) {
+          const imageRef = ref(storage, `profiles/${bannerImageFile.name}`);
+          const response = await uploadBytes(imageRef, bannerImageFile);
+          bannerImageUrl = await getDownloadURL(response.ref);
+        }
+
+        const userProfileDocRef = doc(usersRef, userId);
+        await setDoc(userProfileDocRef, { username, name, bio, profileImageUrl, bannerImageUrl });
+      }
+      else {
+        return rejectWithValue("Username has been taken, please try another username.");
+      }
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+);
+
+const profilesSlice = createSlice({
+  name: "profiles",
+  initialState: { profile: {}, errorMessage: "", loading: true },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchProfileByUser.fulfilled, (state, action) => {
+        state.profile = action.payload;
+        state.loading = false;
+      });
+  },
+});
+
+export default profilesSlice.reducer;
