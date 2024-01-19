@@ -7,6 +7,7 @@ import { AuthContext } from "./AuthProvider";
 import ProfileEditModal from "./ProfileEditModal";
 import { fetchProfileByUserId, fetchProfileByUsername } from "../features/profiles/profilesSlice";
 import { useNavigate, useParams } from "react-router-dom";
+import { fetchFollowers, fetchFollowing, followUser, unfollowUser } from "../features/follows/followsSlice";
 
 export default function ProfileMidBody() {
   const url =
@@ -16,11 +17,22 @@ export default function ProfileMidBody() {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
   const posts = useSelector((state) => state.posts.posts);
   const loading = useSelector((state) => state.posts.loading);
+
+  const profile = useSelector((state) => state.profiles.data);
+  const status = useSelector((state) => state.profiles.status);
+  const error = useSelector((state) => state.profiles.error);
+
+  const followers = useSelector((state) => state.follows.followers);
+  const following = useSelector((state) => state.follows.following);
+
   const username = useParams().username || null;
   const { currentUser } = useContext(AuthContext);
   const currentUserId = currentUser ? currentUser.uid : null;
+
+  const [isFollowed, setIsFollowed] = useState(false);
 
   const [show, setShow] = useState(false);
   const handleOpen = () => setShow(true);
@@ -30,21 +42,43 @@ export default function ProfileMidBody() {
     if (!username) {
       dispatch(fetchProfileByUserId(currentUserId));
       dispatch(fetchPostsByUser(currentUserId));
+      dispatch(fetchFollowers(currentUserId));
+      dispatch(fetchFollowing(currentUserId));
     }
     else {
       dispatch(fetchProfileByUsername(username));
     }
   }, [currentUserId, dispatch, username]);
 
-  const profile = useSelector((state) => state.profiles.data);
-  const status = useSelector((state) => state.profiles.status);
-  const error = useSelector((state) => state.profiles.error);
-
   useEffect(() => {
     if (username && profile && profile.id) {
       dispatch(fetchPostsByUser(profile.id));
+      dispatch(fetchFollowers(profile.id));
+      dispatch(fetchFollowing(profile.id));
     }
   }, [dispatch, profile, username]);
+
+  useEffect(() => {
+    if (username && profile && profile.id && followers && following) {
+      setIsFollowed(followers.some((id) => id === currentUserId));
+    }
+  }, [currentUserId, followers, following, profile, username]);
+
+  const handleFollow = async () => {
+    if (profile && !isFollowed) {
+      await dispatch(followUser({ userId: currentUserId, followingId: profile.id }));
+      await dispatch(fetchFollowers(profile.id));
+      setIsFollowed(true);
+    }
+  };
+
+  const handleUnfollow = async () => {
+    if (profile && isFollowed) {
+      await dispatch(unfollowUser({ userId: currentUserId, followingId: profile.id }));
+      await dispatch(fetchFollowers(profile.id));
+      setIsFollowed(false);
+    }
+  };
 
   return (
     <>
@@ -116,9 +150,22 @@ export default function ProfileMidBody() {
 
             <Row className="justify-content-end">
               <Col xs="auto">
-                <Button className="rounded-pill mt-2" variant="outline-secondary" onClick={handleOpen}>
-                  Edit Profile
-                </Button>
+                {username && profile.id !== currentUserId
+                  ? (
+                    <Button
+                      className="rounded-pill mt-2"
+                      variant={isFollowed ? "outline-primary" : "primary"}
+                      onClick={() => isFollowed ? handleUnfollow() : handleFollow()}
+                    >
+                      {isFollowed ? "Unfollow" : "Follow"}
+                    </Button>
+                  )
+                  : (
+                    <Button className="rounded-pill mt-2" variant="outline-secondary" onClick={handleOpen}>
+                      Edit Profile
+                    </Button>
+                  )
+                }
               </Col>
             </Row>
 
@@ -135,7 +182,8 @@ export default function ProfileMidBody() {
               {profile && profile.bio}
             </p>
             <p>
-              <strong>271</strong> Following <strong>610</strong> Followers
+              <strong>{following ? following.length : 0}</strong> Following{" "}
+              <strong>{followers ? followers.length : 0}</strong> Followers
             </p>
             <Nav variant="underline" defaultActiveKey="/home" justify>
               <Nav.Item>

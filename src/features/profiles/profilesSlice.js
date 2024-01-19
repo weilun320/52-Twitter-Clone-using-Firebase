@@ -19,7 +19,7 @@ export const fetchProfileByUsername = createAsyncThunk(
 
         if (userDoc.exists()) {
           const data = {
-            id: userDoc.data().id,
+            id: userId,
             ...userDoc.data(),
           }
           return data;
