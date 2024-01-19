@@ -10,6 +10,7 @@ import { Container, Row } from "react-bootstrap";
 import ProfileSideBar from "./components/ProfileSideBar";
 import ConnectPeoplePage from "./pages/ConnectPeoplePage";
 import ConnectPeopleSection from "./components/ConnectPeopleSection";
+import "./App.css";
 
 export function Layout() {
   const auth = getAuth();

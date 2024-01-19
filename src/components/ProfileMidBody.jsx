@@ -206,7 +206,12 @@ export default function ProfileMidBody() {
               <Spinner animation="border" className="ms-3 mt-3" variant="primary" />
             )}
             {posts && posts.length > 0 && posts.map((post) => (
-              <ProfilePostCard key={post.id} post={post} />
+              <ProfilePostCard
+                key={post.id}
+                post={post}
+                user={profile}
+                userId={profile && profile.id ? profile.id : currentUserId}
+              />
             ))}
           </>
         ) : null}

@@ -1,0 +1,16 @@
+.darker {
+  transition: all 0.2s ease-in-out;
+}
+
+.darker:hover {
+  cursor: pointer;
+  filter: brightness(80%);
+}
+
+.text-link {
+  cursor: pointer;
+}
+
+.text-link.active:hover {
+  text-decoration: underline;
+}

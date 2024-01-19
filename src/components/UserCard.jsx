@@ -45,14 +45,11 @@ export default function UserCard({ user, currentUserId }) {
             />
           ) : (
             <div
-              className="position-absolute rounded-circle"
+              className="rounded-circle"
               style={{
                 backgroundColor: "#ccc",
-                border: "4px solid #F8F9FA",
-                height: profileImageUrl ? "fit-content" : 150,
-                marginLeft: 15,
-                top: "130px",
-                width: profileImageUrl ? "fit-content" : 150,
+                height: 40,
+                width: 40,
               }}
             >
             </div>
