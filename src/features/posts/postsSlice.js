@@ -27,6 +27,31 @@ export const fetchPostsByUser = createAsyncThunk(
   }
 );
 
+export const fetchSinglePost = createAsyncThunk(
+  "posts/fetchSinglePost",
+  async ({ userId, postId }) => {
+    try {
+      const postRef = doc(db, `users/${userId}/posts/${postId}`);
+
+      const postSnap = await getDoc(postRef);
+
+      if (postSnap.exists()) {
+        return {
+          id: postSnap.id,
+          ...postSnap.data(),
+          createdAt: postSnap.data()?.createdAt?.toMillis(),
+        };
+      }
+      else {
+        throw new Error("Post does not exist");
+      }
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+);
+
 export const savePost = createAsyncThunk(
   "posts/savePost",
   async ({ userId, postContent, file }) => {
@@ -177,8 +202,27 @@ const postsSlice = createSlice({
         state.posts = action.payload;
         state.loading = false;
       })
+      .addCase(fetchSinglePost.fulfilled, (state, action) => {
+        state.posts = [action.payload];
+      })
       .addCase(savePost.fulfilled, (state, action) => {
         state.posts = [action.payload, ...state.posts];
+      })
+      .addCase(updatePost.fulfilled, (state, action) => {
+        const updatedPost = action.payload;
+        // Find and update the post in the state
+        const postIndex = state.posts.findIndex((post) =>
+          post.id === updatedPost.id
+        );
+
+        if (postIndex !== -1) {
+          state.posts[postIndex] = updatedPost;
+        }
+      })
+      .addCase(deletePost.fulfilled, (state, action) => {
+        const deletedPostId = action.payload;
+        // Filter out the deleted post from state
+        state.posts = state.posts.filter((post) => post.id !== deletedPostId);
       })
       .addCase(likePost.fulfilled, (state, action) => {
         const { userId, postId } = action.payload;
@@ -200,22 +244,6 @@ const postsSlice = createSlice({
           );
         }
       })
-      .addCase(updatePost.fulfilled, (state, action) => {
-        const updatedPost = action.payload;
-        // Find and update the post in the state
-        const postIndex = state.posts.findIndex((post) =>
-          post.id === updatedPost.id
-        );
-
-        if (postIndex !== -1) {
-          state.posts[postIndex] = updatedPost;
-        }
-      })
-      .addCase(deletePost.fulfilled, (state, action) => {
-        const deletedPostId = action.payload;
-        // Filter out the deleted post from state
-        state.posts = state.posts.filter((post) => post.id !== deletedPostId);
-      });
   },
 });
 

@@ -11,6 +11,7 @@ import ProfileSideBar from "./components/ProfileSideBar";
 import ConnectPeoplePage from "./pages/ConnectPeoplePage";
 import ConnectPeopleSection from "./components/ConnectPeopleSection";
 import "./App.css";
+import SinglePostPage from "./pages/SinglePostPage";
 
 export function Layout() {
   const auth = getAuth();
@@ -54,6 +55,7 @@ export default function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/profile/:username" element={<ProfilePage />} />
               <Route path="/connect_people" element={<ConnectPeoplePage />} />
+              <Route path="/:username/post/:postId" element={<SinglePostPage />} />
             </Route>
             <Route path="/login" element={<AuthPage />} />
             <Route path="*" element={<AuthPage />} />

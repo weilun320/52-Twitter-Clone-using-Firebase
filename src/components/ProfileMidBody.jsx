@@ -211,6 +211,7 @@ export default function ProfileMidBody() {
                 post={post}
                 user={profile}
                 userId={profile && profile.id ? profile.id : currentUserId}
+                clickable={true}
               />
             ))}
           </>

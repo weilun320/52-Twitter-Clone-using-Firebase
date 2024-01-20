@@ -9,7 +9,7 @@ import { fetchCommentByPost } from "../features/comments/commentsSlice";
 import NewCommentModal from "./NewCommentModal";
 import { useNavigate } from "react-router-dom";
 
-export default function ProfilePostCard({ post, user, userId }) {
+export default function ProfilePostCard({ post, user, userId, clickable }) {
   const { username, name, profileImageUrl } = user;
   const { content, id: postId, imageUrl, createdAt } = post;
 
@@ -50,33 +50,45 @@ export default function ProfilePostCard({ post, user, userId }) {
   };
 
   useEffect(() => {
-    dispatch(fetchCommentByPost({ currentUserId, postId }));
+    dispatch(fetchCommentByPost({ userId, postId }));
 
     const getPostCreatedTime = () => {
       const createdTime = new Date(createdAt);
 
-      const currentDate = new Date();
-      const timeDifference = Math.abs(currentDate - createdTime) / (1000 * 60 * 60);
+      if (clickable) {
+        const currentDate = new Date();
+        const timeDifference = Math.abs(currentDate - createdTime) / (1000 * 60 * 60);
 
-      if (createdTime.getFullYear() !== new Date().getFullYear()) {
-        // Post created year is not current year
-        setPostCreatedAt(`${createdTime.toLocaleString("default", { month: "short" })} ${createdTime.getDate()}, ${createdTime.getFullYear()}`);
-      }
-      else if (timeDifference >= 24) {
-        // Post created time is more than 1 day
-        setPostCreatedAt(`${createdTime.toLocaleString("default", { month: "short" })} ${createdTime.getDate()}`);
-      }
-      else if (timeDifference >= 1) {
-        // Post created time is more than 60 minutes
-        setPostCreatedAt(`${Math.floor(timeDifference)}h`);
-      }
-      else if (Math.floor(timeDifference * 60) === 0) {
-        // Post created time less than 1 minute
-        setPostCreatedAt("Just now");
+        if (createdTime.getFullYear() !== new Date().getFullYear()) {
+          // Post created year is not current year
+          setPostCreatedAt(`${createdTime.toLocaleString("default", { month: "short" })} ${createdTime.getDate()}, ${createdTime.getFullYear()}`);
+        }
+        else if (timeDifference >= 24) {
+          // Post created time is more than 1 day
+          setPostCreatedAt(`${createdTime.toLocaleString("default", { month: "short" })} ${createdTime.getDate()}`);
+        }
+        else if (timeDifference >= 1) {
+          // Post created time is more than 60 minutes
+          setPostCreatedAt(`${Math.floor(timeDifference)}h`);
+        }
+        else if (Math.floor(timeDifference * 60) === 0) {
+          // Post created time less than 1 minute
+          setPostCreatedAt("Just now");
+        }
+        else {
+          // Post created time more than 1 minute but less than 60 minutes
+          setPostCreatedAt(`${Math.floor(timeDifference * 60)}m`);
+        }
       }
       else {
-        // Post created time more than 1 minute but less than 60 minutes
-        setPostCreatedAt(`${Math.floor(timeDifference * 60)}m`);
+        const createdAtTime = `${createdTime.toLocaleString("default", {
+          hour12: true,
+          hour: "numeric",
+          minute: "2-digit"
+        })}`;
+        const createdAtDate = `${createdTime.toLocaleString("default", { month: "short" })} ${createdTime.getDate()}, ${createdTime.getFullYear()}`;
+
+        setPostCreatedAt(`${createdAtTime} · ${createdAtDate}`);
       }
     };
 
@@ -85,7 +97,7 @@ export default function ProfilePostCard({ post, user, userId }) {
     const intervalId = setInterval(getPostCreatedTime, 60000);
 
     return () => clearInterval(intervalId);
-  }, [createdAt, dispatch, postId, currentUserId]);
+  }, [clickable, createdAt, dispatch, postId, userId]);
 
   const handleNavigateUser = () => {
     if (userId !== currentUserId) {
@@ -96,118 +108,207 @@ export default function ProfilePostCard({ post, user, userId }) {
     }
   };
 
-  return (
-    <Row
-      className="p-3"
-      style={{
-        borderTop: "1px solid #D3D3D3",
-        borderBottom: "1px solid #D3D3D3"
-      }}
-    >
-      <Col sm={1} className="px-0">
-        {profileImageUrl ? (
-          <Image
-            className="object-fit-cover mx-auto darker"
-            height={40}
-            roundedCircle
-            src={profileImageUrl}
-            width={40}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleNavigateUser();
-            }}
-          />
-        ) : (
-          <div
-            className="rounded-circle mx-auto darker"
-            style={{
-              backgroundColor: "#ccc",
-              height: 40,
-              width: 40,
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleNavigateUser();
-            }}
-          >
-          </div>
-        )}
-      </Col>
+  const handleNavigatePost = () => {
+    navigate(`/${username}/post/${postId}`);
+  };
 
-      <Col>
-        <strong
-          className="text-link active"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleNavigateUser();
-          }}
-        >
-          {name}
-        </strong>{" "}
-        <span
-          className="text-secondary text-link"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleNavigateUser();
-          }}
-        >
-          @{username}
-        </span>
-        <span className="text-secondary"> · {postCreatedAt}</span>
-        <p>{content}</p>
-        <Image src={imageUrl} style={{ width: 150 }} />
-        <div className="d-flex justify-content-between mt-2">
-          <Button variant="light" onClick={handleShowNewComment}>
-            <i className="bi bi-chat me-1"></i>
-            {comments && comments.length}
-          </Button>
-          <Button variant="light">
-            <i className="bi bi-repeat"></i>
-          </Button>
-          <Button variant="light" onClick={handleLike}>
-            {isLiked ? (
-              <i className="bi bi-heart-fill text-danger me-1"></i>
+  return (
+    <div style={{ cursor: clickable && "pointer" }} onClick={clickable ? handleNavigatePost : null}>
+      <Row
+        className="p-3"
+        style={{
+          borderTop: "1px solid #D3D3D3",
+          borderBottom: "1px solid #D3D3D3"
+        }}
+      >
+        {clickable ? (
+          <Col sm={1} className="px-0">
+            {profileImageUrl ? (
+              <Image
+                className="object-fit-cover mx-auto darker"
+                height={40}
+                roundedCircle
+                src={profileImageUrl}
+                width={40}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateUser();
+                }}
+              />
             ) : (
-              <i className="bi bi-heart me-1"></i>
+              <div
+                className="rounded-circle mx-auto darker"
+                style={{
+                  backgroundColor: "#ccc",
+                  height: 40,
+                  width: 40,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateUser();
+                }}
+              >
+              </div>
             )}
-            {likes.length}
-          </Button>
-          <Button variant="light">
-            <i className="bi bi-graph-up"></i>
-          </Button>
-          <Button variant="light">
-            <i className="bi bi-upload"></i>
-          </Button>
-          {userId === currentUserId && (
+          </Col>
+        ) : (
+          <Col sm={12} className="d-flex mb-2">
+            {profileImageUrl ? (
+              <Image
+                className="object-fit-cover darker"
+                height={40}
+                roundedCircle
+                src={profileImageUrl}
+                width={40}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateUser();
+                }}
+              />
+            ) : (
+              <div
+                className="rounded-circle darker"
+                style={{
+                  backgroundColor: "#ccc",
+                  height: 40,
+                  width: 40,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateUser();
+                }}
+              >
+              </div>
+            )}
+            <div className="ms-3">
+              <div
+                className="fw-bold text-link active"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateUser();
+                }}
+              >
+                {name}
+              </div>
+              <div
+                className="text-secondary text-link"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateUser();
+                }}
+              >
+                @{username}
+              </div>
+            </div>
+          </Col>
+        )}
+
+        <Col>
+          {clickable && (
             <>
-              <Button variant="light" onClick={handleShowUpdate}>
-                <i className="bi bi-pencil-square"></i>
-              </Button>
-              <Button variant="light" onClick={handleShowDelete}>
-                <i className="bi bi-trash"></i>
-              </Button>
+              <strong
+                className="text-link active"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateUser();
+                }}
+              >
+                {name}
+              </strong>{" "}
+              <span
+                className="text-secondary text-link"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateUser();
+                }}
+              >
+                @{username}
+              </span>
+              <span className="text-secondary"> · {postCreatedAt}</span>
             </>
           )}
-          <UpdatePostModal
-            show={showModal === "update"}
-            handleClose={handleClose}
-            postId={postId}
-            originalPostContent={content}
-          />
-          <DeletePostModal
-            show={showModal === "delete"}
-            handleClose={handleClose}
-            postId={postId}
-          />
-          <NewCommentModal
-            show={showModal === "comment"}
-            handleClose={handleClose}
-            userId={currentUserId}
-            postId={postId}
-          />
-        </div>
-      </Col>
-    </Row>
+          <p>{content}</p>
+          <Image src={imageUrl} style={{ width: 150 }} />
+          {!clickable &&
+            <div className="mt-2 text-secondary">{postCreatedAt}</div>
+          }
+          <div className="d-flex justify-content-between mt-2">
+            <Button
+              variant="light"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleShowNewComment();
+              }}
+            >
+              <i className="bi bi-chat me-1"></i>
+              {comments && comments.length}
+            </Button>
+            <Button variant="light">
+              <i className="bi bi-repeat"></i>
+            </Button>
+            <Button
+              variant="light"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLike();
+              }}
+            >
+              {isLiked ? (
+                <i className="bi bi-heart-fill text-danger me-1"></i>
+              ) : (
+                <i className="bi bi-heart me-1"></i>
+              )}
+              {likes.length}
+            </Button>
+            <Button variant="light">
+              <i className="bi bi-graph-up"></i>
+            </Button>
+            <Button variant="light">
+              <i className="bi bi-upload"></i>
+            </Button>
+            {userId === currentUserId && (
+              <>
+                <Button
+                  variant="light"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleShowUpdate();
+                  }}
+                >
+                  <i className="bi bi-pencil-square"></i>
+                </Button>
+                <Button
+                  variant="light"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleShowDelete();
+                  }}
+                >
+                  <i className="bi bi-trash"></i>
+                </Button>
+              </>
+            )}
+            <UpdatePostModal
+              show={showModal === "update"}
+              handleClose={handleClose}
+              postId={postId}
+              originalPostContent={content}
+            />
+            <DeletePostModal
+              show={showModal === "delete"}
+              handleClose={handleClose}
+              postId={postId}
+            />
+            <NewCommentModal
+              show={showModal === "comment"}
+              handleClose={handleClose}
+              userId={currentUserId}
+              postId={postId}
+            />
+          </div>
+        </Col>
+      </Row>
+    </div>
   )
 }
 
