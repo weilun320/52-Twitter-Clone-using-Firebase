@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { db, storage } from "../../firebase";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
@@ -10,10 +10,13 @@ export const fetchPostsByUser = createAsyncThunk(
     try {
       const postsRef = collection(db, `users/${userId}/posts`);
 
-      const querySnapshot = await getDocs(postsRef);
+      const q = query(postsRef, orderBy("createdAt", "desc"));
+
+      const querySnapshot = await getDocs(q);
       const docs = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
+        createdAt: doc.data()?.createdAt?.toMillis(),
       }));
 
       return docs;
@@ -42,12 +45,13 @@ export const savePost = createAsyncThunk(
       // Since no ID is given, Firestore auto generate a unique ID for this new document
       const newPostRef = doc(postsRef);
       console.log(postContent);
-      await setDoc(newPostRef, { content: postContent, likes: [], imageUrl });
+      await setDoc(newPostRef, { content: postContent, likes: [], imageUrl, createdAt: serverTimestamp() });
       const newPost = await getDoc(newPostRef);
 
       const post = {
         id: newPost.id,
         ...newPost.data(),
+        createdAt: newPost.data()?.createdAt?.toMillis(),
       };
 
       return post;

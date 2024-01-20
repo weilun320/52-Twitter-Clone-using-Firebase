@@ -11,9 +11,11 @@ import { useNavigate } from "react-router-dom";
 
 export default function ProfilePostCard({ post, user, userId }) {
   const { username, name, profileImageUrl } = user;
-  const { content, id: postId, imageUrl } = post;
+  const { content, id: postId, imageUrl, createdAt } = post;
 
   const [likes, setLikes] = useState(post.likes || []);
+  const [postCreatedAt, setPostCreatedAt] = useState("");
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const comments = useSelector((state) => state.comments[postId]);
@@ -49,7 +51,41 @@ export default function ProfilePostCard({ post, user, userId }) {
 
   useEffect(() => {
     dispatch(fetchCommentByPost({ currentUserId, postId }));
-  }, [dispatch, postId, currentUserId]);
+
+    const getPostCreatedTime = () => {
+      const createdTime = new Date(createdAt);
+
+      const currentDate = new Date();
+      const timeDifference = Math.abs(currentDate - createdTime) / (1000 * 60 * 60);
+
+      if (createdTime.getFullYear() !== new Date().getFullYear()) {
+        // Post created year is not current year
+        setPostCreatedAt(`${createdTime.toLocaleString("default", { month: "short" })} ${createdTime.getDate()}, ${createdTime.getFullYear()}`);
+      }
+      else if (timeDifference >= 24) {
+        // Post created time is more than 1 day
+        setPostCreatedAt(`${createdTime.toLocaleString("default", { month: "short" })} ${createdTime.getDate()}`);
+      }
+      else if (timeDifference >= 1) {
+        // Post created time is more than 60 minutes
+        setPostCreatedAt(`${Math.floor(timeDifference)}h`);
+      }
+      else if (Math.floor(timeDifference * 60) === 0) {
+        // Post created time less than 1 minute
+        setPostCreatedAt("Just now");
+      }
+      else {
+        // Post created time more than 1 minute but less than 60 minutes
+        setPostCreatedAt(`${Math.floor(timeDifference * 60)}m`);
+      }
+    };
+
+    getPostCreatedTime();
+
+    const intervalId = setInterval(getPostCreatedTime, 60000);
+
+    return () => clearInterval(intervalId);
+  }, [createdAt, dispatch, postId, currentUserId]);
 
   const handleNavigateUser = () => {
     if (userId !== currentUserId) {
@@ -117,10 +153,10 @@ export default function ProfilePostCard({ post, user, userId }) {
         >
           @{username}
         </span>
-        <span className="text-secondary"> · Apr 16</span>
+        <span className="text-secondary"> · {postCreatedAt}</span>
         <p>{content}</p>
         <Image src={imageUrl} style={{ width: 150 }} />
-        <div className="d-flex justify-content-between mt-3">
+        <div className="d-flex justify-content-between mt-2">
           <Button variant="light" onClick={handleShowNewComment}>
             <i className="bi bi-chat me-1"></i>
             {comments && comments.length}
