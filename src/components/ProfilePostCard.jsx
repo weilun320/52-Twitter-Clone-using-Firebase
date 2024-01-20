@@ -302,7 +302,7 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
             <NewCommentModal
               show={showModal === "comment"}
               handleClose={handleClose}
-              userId={currentUserId}
+              userId={userId}
               postId={postId}
             />
           </div>

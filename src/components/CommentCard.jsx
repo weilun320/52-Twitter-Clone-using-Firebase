@@ -14,7 +14,7 @@ export default function CommentCard({ comment }) {
   const { currentUser } = useContext(AuthContext);
   const currentUserId = currentUser ? currentUser.uid : null;
 
-  const profile = useSelector((state) => state.profiles.data);
+  const profile = useSelector((state) => state.profiles.profiles[userId]);
   const [commentCreatedAt, setCommentCreatedAt] = useState("");
 
   useEffect(() => {
@@ -27,23 +27,23 @@ export default function CommentCard({ comment }) {
       const timeDifference = Math.abs(currentDate - createdTime) / (1000 * 60 * 60);
 
       if (createdTime.getFullYear() !== new Date().getFullYear()) {
-        // Post created year is not current year
+        // Comment created year is not current year
         setCommentCreatedAt(`${createdTime.toLocaleString("default", { month: "short" })} ${createdTime.getDate()}, ${createdTime.getFullYear()}`);
       }
       else if (timeDifference >= 24) {
-        // Post created time is more than 1 day
+        // Comment created time is more than 1 day
         setCommentCreatedAt(`${createdTime.toLocaleString("default", { month: "short" })} ${createdTime.getDate()}`);
       }
       else if (timeDifference >= 1) {
-        // Post created time is more than 60 minutes
+        // Comment created time is more than 60 minutes
         setCommentCreatedAt(`${Math.floor(timeDifference)}h`);
       }
       else if (Math.floor(timeDifference * 60) === 0) {
-        // Post created time less than 1 minute
+        // Comment created time less than 1 minute
         setCommentCreatedAt("Just now");
       }
       else {
-        // Post created time more than 1 minute but less than 60 minutes
+        // Comment created time more than 1 minute but less than 60 minutes
         setCommentCreatedAt(`${Math.floor(timeDifference * 60)}m`);
       }
     };

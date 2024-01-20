@@ -21,7 +21,7 @@ export const fetchProfileByUsername = createAsyncThunk(
           const data = {
             id: userId,
             ...userDoc.data(),
-          }
+          };
           return data;
         }
         else {
@@ -49,7 +49,11 @@ export const fetchProfileByUserId = createAsyncThunk(
         const profileData = profileDocSnap.data();
 
         if ("username" in profileData) {
-          return profileDocSnap.data();
+          const data = {
+            id: userId,
+            ...profileDocSnap.data(),
+          };
+          return data;
         }
         else {
           return rejectWithValue("Please set your profile.");
@@ -108,7 +112,7 @@ export const saveProfile = createAsyncThunk(
 
 const profilesSlice = createSlice({
   name: "profiles",
-  initialState: { data: null, status: "idle", error: null },
+  initialState: { profiles: {}, status: "idle", error: null },
   reducers: {},
   extraReducers: (builder) => {
     builder
@@ -117,7 +121,7 @@ const profilesSlice = createSlice({
       })
       .addCase(fetchProfileByUserId.fulfilled, (state, action) => {
         state.status = "success";
-        state.data = action.payload;
+        state.profiles[action.payload.id] = action.payload;
       })
       .addCase(fetchProfileByUserId.rejected, (state, action) => {
         state.status = "error";
@@ -128,7 +132,7 @@ const profilesSlice = createSlice({
       })
       .addCase(fetchProfileByUsername.fulfilled, (state, action) => {
         state.status = "success";
-        state.data = action.payload;
+        state.profiles[action.payload.username] = action.payload;
       })
       .addCase(fetchProfileByUsername.rejected, (state, action) => {
         state.status = "error";

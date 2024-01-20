@@ -1,11 +1,10 @@
-import { useContext, useEffect } from "react";
+import { useEffect } from "react";
 import { Button, Col, Row } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchProfileByUsername } from "../features/profiles/profilesSlice";
 import { fetchSinglePost } from "../features/posts/postsSlice";
 import ProfilePostCard from "../components/ProfilePostCard";
-import { AuthContext } from "../components/AuthProvider";
 import { fetchCommentByPost } from "../features/comments/commentsSlice";
 import CommentCard from "../components/CommentCard";
 
@@ -14,12 +13,10 @@ export default function SinglePostPage() {
   const dispatch = useDispatch();
 
   const { username, postId } = useParams();
-  const profile = useSelector((state) => state.profiles.data);
+  const profile = useSelector((state) => state.profiles.profiles[username]);
   const post = useSelector((state) => state.posts.posts);
+  const error = useSelector((state) => state.posts.error);
   const comments = useSelector((state) => state.comments[postId]);
-
-  const { currentUser } = useContext(AuthContext);
-  const currentUserId = currentUser ? currentUser.uid : null;
 
   useEffect(() => {
     dispatch(fetchProfileByUsername(username));
@@ -47,11 +44,14 @@ export default function SinglePostPage() {
         </Col>
         <Col className="fs-4 fw-semibold">Post</Col>
       </Row>
+      {error &&
+        <div className="my-3">{error}</div>
+      }
       {post && post.length > 0 && profile && comments &&
         <ProfilePostCard
           post={post[0]}
           user={profile}
-          userId={profile && profile.id ? profile.id : currentUserId}
+          userId={profile && profile.id}
           clickable={false}
         />
       }

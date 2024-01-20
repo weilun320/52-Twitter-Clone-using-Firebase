@@ -54,7 +54,7 @@ export const fetchFollowers = createAsyncThunk(
       const followsDocSnap = await getDoc(followsRef);
 
       if (followsDocSnap.exists()) {
-        return followsDocSnap.data().followers;
+        return followsDocSnap.data().followers || [];
       }
       else {
         return [];
@@ -74,7 +74,7 @@ export const fetchFollowing = createAsyncThunk(
       const followsDocSnap = await getDoc(followsRef);
 
       if (followsDocSnap.exists()) {
-        return followsDocSnap.data().following;
+        return followsDocSnap.data().following || [];
       }
       else {
         return [];

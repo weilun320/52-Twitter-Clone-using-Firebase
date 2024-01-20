@@ -18,19 +18,19 @@ export default function ProfileMidBody() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const username = useParams().username || null;
+  const { currentUser } = useContext(AuthContext);
+  const currentUserId = currentUser ? currentUser.uid : null;
+
   const posts = useSelector((state) => state.posts.posts);
   const loading = useSelector((state) => state.posts.loading);
 
-  const profile = useSelector((state) => state.profiles.data);
+  const profile = useSelector((state) => state.profiles.profiles[username || currentUserId]);
   const status = useSelector((state) => state.profiles.status);
   const error = useSelector((state) => state.profiles.error);
 
   const followers = useSelector((state) => state.follows.followers);
   const following = useSelector((state) => state.follows.following);
-
-  const username = useParams().username || null;
-  const { currentUser } = useContext(AuthContext);
-  const currentUserId = currentUser ? currentUser.uid : null;
 
   const [isFollowed, setIsFollowed] = useState(false);
 
@@ -95,7 +95,22 @@ export default function ProfileMidBody() {
             </Col>
           </Row>
         ) : status === "error" && username ? (
-          <div className="my-3">{error}</div>
+          <>
+            <Row className="align-items-center">
+              <Col sm="auto">
+                <Button
+                  className="rounded-circle"
+                  variant="light"
+                  style={{ height: 42, width: 42 }}
+                  onClick={() => navigate(-1)}
+                >
+                  <i className="bi bi-arrow-left"></i>
+                </Button>
+              </Col>
+              <Col className="fs-4 fw-semibold">Profile</Col>
+            </Row>
+            <div className="my-3">{error}</div>
+          </>
         ) : status === "success" ? (
           <>
             <Row className="align-items-center">
@@ -150,7 +165,7 @@ export default function ProfileMidBody() {
 
             <Row className="justify-content-end">
               <Col xs="auto">
-                {username && profile.id !== currentUserId
+                {username && profile && profile.id !== currentUserId
                   ? (
                     <Button
                       className="rounded-pill mt-2"

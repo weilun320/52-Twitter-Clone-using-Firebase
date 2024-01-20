@@ -29,7 +29,7 @@ export const fetchPostsByUser = createAsyncThunk(
 
 export const fetchSinglePost = createAsyncThunk(
   "posts/fetchSinglePost",
-  async ({ userId, postId }) => {
+  async ({ userId, postId }, { rejectWithValue }) => {
     try {
       const postRef = doc(db, `users/${userId}/posts/${postId}`);
 
@@ -43,7 +43,7 @@ export const fetchSinglePost = createAsyncThunk(
         };
       }
       else {
-        throw new Error("Post does not exist");
+        return rejectWithValue("Post does not exist");
       }
     } catch (error) {
       console.error(error);
@@ -194,7 +194,7 @@ export const removeLikeFromPost = createAsyncThunk(
 // Slice
 const postsSlice = createSlice({
   name: "posts",
-  initialState: { posts: [], loading: true },
+  initialState: { posts: [], loading: true, error: null },
   reducers: {},
   extraReducers: (builder) => {
     builder
@@ -204,6 +204,9 @@ const postsSlice = createSlice({
       })
       .addCase(fetchSinglePost.fulfilled, (state, action) => {
         state.posts = [action.payload];
+      })
+      .addCase(fetchSinglePost.rejected, (state, action) => {
+        state.error = action.payload;
       })
       .addCase(savePost.fulfilled, (state, action) => {
         state.posts = [action.payload, ...state.posts];
@@ -243,7 +246,7 @@ const postsSlice = createSlice({
             id !== userId
           );
         }
-      })
+      });
   },
 });
 
