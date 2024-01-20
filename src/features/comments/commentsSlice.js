@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 
 export const fetchCommentByPost = createAsyncThunk(
@@ -8,10 +8,13 @@ export const fetchCommentByPost = createAsyncThunk(
     try {
       const commentsRef = collection(db, `users/${userId}/posts/${postId}/comments`);
 
-      const querySnapshot = await getDocs(commentsRef);
+      const q = query(commentsRef, orderBy("createdAt", "desc"));
+
+      const querySnapshot = await getDocs(q);
       const docs = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
+        createdAt: doc.data()?.createdAt?.toMillis(),
       }));
 
       return { postId, comments: docs };
@@ -29,12 +32,13 @@ export const commentPost = createAsyncThunk(
       const commentsRef = collection(db, `users/${userId}/posts/${postId}/comments`);
 
       const newCommentsRef = doc(commentsRef);
-      await setDoc(newCommentsRef, { comment: commentContent, user_id: currentUserId });
+      await setDoc(newCommentsRef, { comment: commentContent, userId: currentUserId, createdAt: serverTimestamp() });
       const newComment = await getDoc(newCommentsRef);
 
       const comment = {
         id: newComment.id,
         ...newComment.data(),
+        createdAt: newComment.data()?.createdAt?.toMillis(),
       };
 
       return { postId, comment };
