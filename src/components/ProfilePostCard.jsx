@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Button, Col, Image, Row } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 import { AuthContext } from "./AuthProvider";
-import { fetchRetweetsByPost, likePost, removeLikeFromPost, removeRetweetFromPost, retweetPost } from "../features/posts/postsSlice";
+import { fetchLikeByPost, fetchRetweetsByPost, likePost, removeLikeFromPost, removeRetweetFromPost, retweetPost } from "../features/posts/postsSlice";
 import UpdatePostModal from "./UpdatePostModal";
 import DeletePostModal from "./DeletePostModal";
 import { fetchCommentByPost } from "../features/comments/commentsSlice";
@@ -14,20 +14,18 @@ export default function ProfilePostCard({ post, user, currentUserDetails, clicka
   const { id: userId, username, name, profileImageUrl } = user;
   const { content, id: postId, imageUrl, createdAt } = post;
 
-  const [likes, setLikes] = useState(post.likes || []);
   const [isRetweeted, setIsRetweeted] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
   const [postCreatedAt, setPostCreatedAt] = useState("");
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const comments = useSelector((state) => state.comments[postId]);
   const retweets = useSelector((state) => state.posts.retweets[postId]);
+  const likes = useSelector((state) => state.posts.likes[postId]);
 
   const { currentUser } = useContext(AuthContext);
   const currentUserId = currentUser ? currentUser.uid : null;
-
-  // User has liked the post if their ID is in the likes  array
-  const isLiked = likes.includes(currentUserId);
 
   const pic = "https://pbs.twimg.com/profile_images/1587405892437221376/h167Jlb2_400x400.jpg";
 
@@ -43,13 +41,11 @@ export default function ProfilePostCard({ post, user, currentUserDetails, clicka
 
   // Add userId to likes array
   const addToLikes = () => {
-    setLikes([...likes, currentUserId]);
     dispatch(likePost({ userId: currentUserId, authorUserId: userId, postId }));
   };
 
   // Remove userId from likes array and update the backend
   const removeFromLikes = () => {
-    setLikes(likes.filter((id) => id !== currentUserId));
     dispatch(removeLikeFromPost({ userId: currentUserId, authorUserId: userId, postId }));
   };
 
@@ -66,6 +62,7 @@ export default function ProfilePostCard({ post, user, currentUserDetails, clicka
   useEffect(() => {
     dispatch(fetchRetweetsByPost({ userId, postId }));
     dispatch(fetchCommentByPost({ userId, postId }));
+    dispatch(fetchLikeByPost({ userId, postId }));
 
     const getPostCreatedTime = () => {
       const createdTime = new Date(createdAt);
@@ -118,7 +115,11 @@ export default function ProfilePostCard({ post, user, currentUserDetails, clicka
     if (retweets) {
       setIsRetweeted(retweets.includes(currentUserId));
     }
-  }, [currentUserId, retweets]);
+
+    if (likes) {
+      setIsLiked(likes.includes(currentUserId));
+    }
+  }, [currentUserId, likes, retweets]);
 
   const handleNavigateUser = (userId) => {
     if (userId === currentUserId) {
@@ -314,7 +315,7 @@ export default function ProfilePostCard({ post, user, currentUserDetails, clicka
               ) : (
                 <i className="bi bi-heart me-1"></i>
               )}
-              {likes.length}
+              {likes && likes.length}
             </Button>
             <Button variant="light">
               <i className="bi bi-graph-up"></i>

@@ -156,6 +156,29 @@ export const deletePost = createAsyncThunk(
   }
 );
 
+export const fetchLikeByPost = createAsyncThunk(
+  "posts/fetchLikeByPost",
+  async ({ userId, postId }) => {
+    try {
+      const postRef = doc(db, `users/${userId}/posts/${postId}`);
+
+      const postDocSnap = await getDoc(postRef);
+      if (postDocSnap.exists()) {
+        const data = {
+          id: postId,
+          ...postDocSnap.data(),
+          createdAt: postDocSnap.data()?.createdAt?.toMillis(),
+        };
+
+        return { postId: data.id, likes: data.likes };
+      }
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+);
+
 export const likePost = createAsyncThunk(
   "posts/likePost",
   async ({ userId, authorUserId, postId }) => {
@@ -171,7 +194,7 @@ export const likePost = createAsyncThunk(
         await setDoc(postRef, { ...postData, likes });
       }
 
-      return { userId: authorUserId, postId };
+      return { userId, postId };
     } catch (error) {
       console.error(error);
       throw error;
@@ -194,7 +217,7 @@ export const removeLikeFromPost = createAsyncThunk(
         await setDoc(postRef, { ...postData, likes });
       }
 
-      return { userId: authorUserId, postId };
+      return { userId, postId };
     } catch (error) {
       console.error(error);
       throw error;
@@ -274,7 +297,7 @@ export const removeRetweetFromPost = createAsyncThunk(
 // Slice
 const postsSlice = createSlice({
   name: "posts",
-  initialState: { posts: [], loading: true, error: null, retweets: {} },
+  initialState: { posts: [], loading: true, error: null, likes: {}, retweets: {} },
   reducers: {},
   extraReducers: (builder) => {
     builder
@@ -309,25 +332,21 @@ const postsSlice = createSlice({
         // Filter out the deleted post from state
         state[userId] = state[userId].filter((post) => post.id !== deletedPostId);
       })
+      .addCase(fetchLikeByPost.fulfilled, (state, action) => {
+        if (action.payload) {
+          const { postId, likes } = action.payload;
+          state.likes[postId] = likes || [];
+        }
+      })
       .addCase(likePost.fulfilled, (state, action) => {
         const { userId, postId } = action.payload;
-
-        const postIndex = state.posts.findIndex((post) => post.id === postId);
-
-        if (postIndex !== -1) {
-          state.posts[postIndex].likes.push(userId);
-        }
+        state.likes[postId] = state.likes[postId] || [];
+        state.likes[postId].push(userId);
       })
       .addCase(removeLikeFromPost.fulfilled, (state, action) => {
         const { userId, postId } = action.payload;
-
-        const postIndex = state.posts.findIndex((post) => post.id === postId);
-
-        if (postIndex !== -1) {
-          state.posts[postIndex].likes = state.posts[postIndex].likes.filter((id) =>
-            id !== userId
-          );
-        }
+        state.likes[postId] = state.likes[postId] || [];
+        state.likes[postId] = state.likes[postId].filter((id) => id !== userId);
       })
       .addCase(fetchRetweetsByPost.fulfilled, (state, action) => {
         if (action.payload) {
