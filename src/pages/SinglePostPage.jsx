@@ -13,7 +13,7 @@ export default function SinglePostPage() {
   const dispatch = useDispatch();
 
   const { username, postId } = useParams();
-  const profile = useSelector((state) => state.profiles.profiles[username]);
+  const { profile } = useSelector((state) => state.profiles[username]) || {};
   const post = useSelector((state) => state.posts.posts);
   const error = useSelector((state) => state.posts.error);
   const comments = useSelector((state) => state.comments[postId]);
@@ -51,7 +51,6 @@ export default function SinglePostPage() {
         <ProfilePostCard
           post={post[0]}
           user={profile}
-          userId={profile && profile.id}
           clickable={false}
         />
       }

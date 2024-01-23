@@ -14,7 +14,7 @@ export default function CommentCard({ comment }) {
   const { currentUser } = useContext(AuthContext);
   const currentUserId = currentUser ? currentUser.uid : null;
 
-  const profile = useSelector((state) => state.profiles.profiles[userId]);
+  const { profile } = useSelector((state) => state.profiles[userId]) || {};
   const [commentCreatedAt, setCommentCreatedAt] = useState("");
 
   useEffect(() => {

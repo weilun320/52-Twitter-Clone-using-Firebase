@@ -112,31 +112,33 @@ export const saveProfile = createAsyncThunk(
 
 const profilesSlice = createSlice({
   name: "profiles",
-  initialState: { profiles: {}, status: "idle", error: null },
+  initialState: {},
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchProfileByUserId.pending, (state) => {
-        state.status = "loading";
+      .addCase(fetchProfileByUserId.pending, (state, action) => {
+        const userId = action.meta.arg; // Get userId argument parsed from async thunk
+        state[userId] = { status: "loading", error: null, profile: null };
       })
       .addCase(fetchProfileByUserId.fulfilled, (state, action) => {
-        state.status = "success";
-        state.profiles[action.payload.id] = action.payload;
+        const userId = action.meta.arg;
+        state[userId] = { status: "success", error: null, profile: action.payload };
       })
       .addCase(fetchProfileByUserId.rejected, (state, action) => {
-        state.status = "error";
-        state.error = action.payload;
+        const userId = action.meta.arg;
+        state[userId] = { status: "error", error: action.payload, profile: null };
       })
-      .addCase(fetchProfileByUsername.pending, (state) => {
-        state.status = "loading";
+      .addCase(fetchProfileByUsername.pending, (state, action) => {
+        const username = action.meta.arg; // Get username argument parsed from async thunk
+        state[username] = { status: "loading", error: null, profile: null };
       })
       .addCase(fetchProfileByUsername.fulfilled, (state, action) => {
-        state.status = "success";
-        state.profiles[action.payload.username] = action.payload;
+        const username = action.meta.arg;
+        state[username] = { status: "success", error: null, profile: action.payload };
       })
       .addCase(fetchProfileByUsername.rejected, (state, action) => {
-        state.status = "error";
-        state.error = action.payload;
+        const username = action.meta.arg;
+        state[username] = { status: "error", error: action.payload, profile: null };
       });
   },
 });
