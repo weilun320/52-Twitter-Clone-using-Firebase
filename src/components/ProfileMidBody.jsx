@@ -269,9 +269,7 @@ export default function ProfileMidBody() {
           </>
         ) : null}
       </Col>
-      {profile && (
-        <ProfileEditModal show={show} handleClose={handleClose} userId={currentUserId} profile={profile} />
-      )}
+      <ProfileEditModal show={show} handleClose={handleClose} userId={currentUserId} profile={profile} />
     </>
   );
 }
