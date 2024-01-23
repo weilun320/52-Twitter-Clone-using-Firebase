@@ -24,13 +24,13 @@ export default function ProfileMidBody() {
   const { currentUser } = useContext(AuthContext);
   const currentUserId = currentUser ? currentUser.uid : null;
 
-  const posts = useSelector((state) => state.posts.posts);
-  const loading = useSelector((state) => state.posts.loading);
-
   const { profile, status, error } = useSelector((state) => state.profiles[username || currentUserId]) || {};
 
   const followers = useSelector((state) => state.follows.followers);
   const following = useSelector((state) => state.follows.following);
+
+  const posts = useSelector((state) => state.posts[profile && profile.id]);
+  const loading = useSelector((state) => state.posts.loading);
 
   const retweets = useSelector((state) =>
     state.retweets.retweets[profile && profile.id || currentUserId]

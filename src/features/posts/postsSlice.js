@@ -19,7 +19,7 @@ export const fetchPostsByUser = createAsyncThunk(
         createdAt: doc.data()?.createdAt?.toMillis(),
       }));
 
-      return docs;
+      return { userId, posts: docs };
     } catch (error) {
       console.error(error);
       throw error;
@@ -85,7 +85,7 @@ export const savePost = createAsyncThunk(
         createdAt: newPost.data()?.createdAt?.toMillis(),
       };
 
-      return post;
+      return { userId, post };
     } catch (error) {
       console.error(error);
       throw error;
@@ -121,8 +121,13 @@ export const updatePost = createAsyncThunk(
         // Update the existing document in Firestore
         await updateDoc(postRef, updatedData);
         // Return the post with updated data
-        const updatedPost = { id: postId, ...updatedData };
-        return updatedPost;
+        const updatedPost = {
+          id: postId,
+          ...updatedData,
+          createdAt: updatedData.createdAt?.toMillis(),
+        };
+
+        return { userId, updatedPost };
       }
       else {
         throw new Error("Post does not exist");
@@ -143,7 +148,7 @@ export const deletePost = createAsyncThunk(
       // Delete the post
       await deleteDoc(postRef);
       // Return the ID of the deleted post
-      return postId;
+      return { userId, deletedPostId: postId };
     } catch (error) {
       console.error(error);
       throw error;
@@ -274,7 +279,8 @@ const postsSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchPostsByUser.fulfilled, (state, action) => {
-        state.posts = action.payload;
+        const { userId, posts } = action.payload;
+        state[userId] = posts || [];
         state.loading = false;
       })
       .addCase(fetchSinglePost.fulfilled, (state, action) => {
@@ -284,23 +290,24 @@ const postsSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(savePost.fulfilled, (state, action) => {
-        state.posts = [action.payload, ...state.posts];
+        const { userId, post } = action.payload;
+        state[userId] = [post, ...state[userId]];
       })
       .addCase(updatePost.fulfilled, (state, action) => {
-        const updatedPost = action.payload;
+        const { userId, updatedPost } = action.payload;
         // Find and update the post in the state
-        const postIndex = state.posts.findIndex((post) =>
+        const postIndex = state[userId].findIndex((post) =>
           post.id === updatedPost.id
         );
 
         if (postIndex !== -1) {
-          state.posts[postIndex] = updatedPost;
+          state[userId][postIndex] = updatedPost;
         }
       })
       .addCase(deletePost.fulfilled, (state, action) => {
-        const deletedPostId = action.payload;
+        const { userId, deletedPostId } = action.payload;
         // Filter out the deleted post from state
-        state.posts = state.posts.filter((post) => post.id !== deletedPostId);
+        state[userId] = state[userId].filter((post) => post.id !== deletedPostId);
       })
       .addCase(likePost.fulfilled, (state, action) => {
         const { userId, postId } = action.payload;
