@@ -70,7 +70,13 @@ export const savePost = createAsyncThunk(
       // Since no ID is given, Firestore auto generate a unique ID for this new document
       const newPostRef = doc(postsRef);
       console.log(postContent);
-      await setDoc(newPostRef, { content: postContent, likes: [], imageUrl, createdAt: serverTimestamp() });
+      await setDoc(newPostRef, {
+        content: postContent,
+        likes: [],
+        imageUrl,
+        createdAt: serverTimestamp(),
+        retweets: [],
+      });
       const newPost = await getDoc(newPostRef);
 
       const post = {
@@ -147,9 +153,9 @@ export const deletePost = createAsyncThunk(
 
 export const likePost = createAsyncThunk(
   "posts/likePost",
-  async ({ userId, postId }) => {
+  async ({ userId, authorUserId, postId }) => {
     try {
-      const postRef = doc(db, `users/${userId}/posts/${postId}`);
+      const postRef = doc(db, `users/${authorUserId}/posts/${postId}`);
 
       const docSnap = await getDoc(postRef);
 
@@ -160,7 +166,7 @@ export const likePost = createAsyncThunk(
         await setDoc(postRef, { ...postData, likes });
       }
 
-      return { userId, postId };
+      return { userId: authorUserId, postId };
     } catch (error) {
       console.error(error);
       throw error;
@@ -170,9 +176,9 @@ export const likePost = createAsyncThunk(
 
 export const removeLikeFromPost = createAsyncThunk(
   "posts/removeLikeFromPost",
-  async ({ userId, postId }) => {
+  async ({ userId, authorUserId, postId }) => {
     try {
-      const postRef = doc(db, `users/${userId}/posts/${postId}`);
+      const postRef = doc(db, `users/${authorUserId}/posts/${postId}`);
 
       const docSnap = await getDoc(postRef);
 
@@ -183,7 +189,76 @@ export const removeLikeFromPost = createAsyncThunk(
         await setDoc(postRef, { ...postData, likes });
       }
 
-      return { userId, postId };
+      return { userId: authorUserId, postId };
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+);
+
+export const fetchRetweetsByPost = createAsyncThunk(
+  "posts/fetchRetweetsByPost",
+  async ({ userId, postId }) => {
+    try {
+      const postRef = doc(db, `users/${userId}/posts/${postId}`);
+      const postDocSnap = await getDoc(postRef);
+
+      if (postDocSnap.exists()) {
+        const data = {
+          id: postId,
+          ...postDocSnap.data(),
+          createdAt: postDocSnap.data()?.createdAt?.toMillis(),
+        };
+
+        return { postId: data.id, retweets: data.retweets };
+      }
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+);
+
+export const retweetPost = createAsyncThunk(
+  "posts/retweetPost",
+  async ({ userId, authorUserId, postId }) => {
+    try {
+      const postRef = doc(db, `users/${authorUserId}/posts/${postId}`);
+
+      const docSnap = await getDoc(postRef);
+
+      if (docSnap.exists()) {
+        const postData = docSnap.data();
+        const retweets = [...postData.retweets, userId];
+
+        await setDoc(postRef, { ...postData, retweets });
+      }
+
+      return { postId, userId };
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  }
+);
+
+export const removeRetweetFromPost = createAsyncThunk(
+  "posts/removeRetweetFromPost",
+  async ({ userId, authorUserId, postId }) => {
+    try {
+      const postRef = doc(db, `users/${authorUserId}/posts/${postId}`);
+
+      const docSnap = await getDoc(postRef);
+
+      if (docSnap.exists()) {
+        const postData = docSnap.data();
+        const retweets = postData.retweets.filter((id) => id !== userId);
+
+        await setDoc(postRef, { ...postData, retweets });
+      }
+
+      return { postId, userId };
     } catch (error) {
       console.error(error);
       throw error;
@@ -194,7 +269,7 @@ export const removeLikeFromPost = createAsyncThunk(
 // Slice
 const postsSlice = createSlice({
   name: "posts",
-  initialState: { posts: [], loading: true, error: null },
+  initialState: { posts: [], loading: true, error: null, retweets: {} },
   reducers: {},
   extraReducers: (builder) => {
     builder
@@ -246,6 +321,22 @@ const postsSlice = createSlice({
             id !== userId
           );
         }
+      })
+      .addCase(fetchRetweetsByPost.fulfilled, (state, action) => {
+        if (action.payload) {
+          const { postId, retweets } = action.payload;
+          state.retweets[postId] = retweets || [];
+        }
+      })
+      .addCase(retweetPost.fulfilled, (state, action) => {
+        const { postId, userId } = action.payload;
+        state.retweets[postId] = state.retweets[postId] || [];
+        state.retweets[postId].push(userId);
+      })
+      .addCase(removeRetweetFromPost.fulfilled, (state, action) => {
+        const { postId, userId } = action.payload;
+        state.retweets[postId] = state.retweets[postId] || [];
+        state.retweets[postId] = state.retweets[postId].filter((id) => id !== userId);
       });
   },
 });

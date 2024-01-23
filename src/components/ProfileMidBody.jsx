@@ -8,6 +8,8 @@ import ProfileEditModal from "./ProfileEditModal";
 import { fetchProfileByUserId, fetchProfileByUsername } from "../features/profiles/profilesSlice";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchFollowers, fetchFollowing, followUser, unfollowUser } from "../features/follows/followsSlice";
+import { fetchRetweetsByUser } from "../features/retweets/retweetsSlice";
+import ProfileRetweetCard from "./ProfileRetweetCard";
 
 export default function ProfileMidBody() {
   const url =
@@ -25,12 +27,15 @@ export default function ProfileMidBody() {
   const posts = useSelector((state) => state.posts.posts);
   const loading = useSelector((state) => state.posts.loading);
 
-  const profile = useSelector((state) => state.profiles.profiles[username || currentUserId]);
-  const status = useSelector((state) => state.profiles.status);
-  const error = useSelector((state) => state.profiles.error);
+  const { profile, status, error } = useSelector((state) => state.profiles[username || currentUserId]) || {};
 
   const followers = useSelector((state) => state.follows.followers);
   const following = useSelector((state) => state.follows.following);
+
+  const retweets = useSelector((state) =>
+    state.retweets.retweets[profile && profile.id || currentUserId]
+  );
+  const [combinedData, setCombinedData] = useState([]);
 
   const [isFollowed, setIsFollowed] = useState(false);
 
@@ -39,24 +44,47 @@ export default function ProfileMidBody() {
   const handleClose = () => setShow(false);
 
   useEffect(() => {
-    if (!username) {
-      dispatch(fetchProfileByUserId(currentUserId));
-      dispatch(fetchPostsByUser(currentUserId));
-      dispatch(fetchFollowers(currentUserId));
-      dispatch(fetchFollowing(currentUserId));
-    }
-    else {
-      dispatch(fetchProfileByUsername(username));
-    }
+    const fetchUserProfile = async () => {
+      if (!username) {
+        await dispatch(fetchProfileByUserId(currentUserId));
+      } else {
+        await dispatch(fetchProfileByUsername(username));
+      }
+    };
+
+    fetchUserProfile();
   }, [currentUserId, dispatch, username]);
 
   useEffect(() => {
-    if (username && profile && profile.id) {
-      dispatch(fetchPostsByUser(profile.id));
-      dispatch(fetchFollowers(profile.id));
-      dispatch(fetchFollowing(profile.id));
+    const fetchData = async () => {
+      if (profile && profile.id) {
+        await dispatch(fetchPostsByUser(profile.id));
+        await dispatch(fetchRetweetsByUser(profile.id));
+        await dispatch(fetchFollowers(profile.id));
+        await dispatch(fetchFollowing(profile.id));
+      }
+    };
+
+    fetchData();
+  }, [dispatch, profile]);
+
+  useEffect(() => {
+    if (posts && retweets) {
+      const postsWithType = posts.map((post) => ({ ...post, type: "post" }));
+      const retweetsWithType = retweets.map((retweet) => ({ ...retweet, type: "retweet" }));
+
+      const combinedArray = [...postsWithType, ...retweetsWithType];
+
+      const sortedArray = combinedArray.sort((a, b) => {
+        const createdAtA = new Date(a.createdAt);
+        const createdAtB = new Date(b.createdAt);
+
+        return createdAtB - createdAtA;
+      });
+
+      setCombinedData(sortedArray);
     }
-  }, [dispatch, profile, username]);
+  }, [posts, retweets]);
 
   useEffect(() => {
     if (username && profile && profile.id && followers && following) {
@@ -85,7 +113,7 @@ export default function ProfileMidBody() {
       <Col sm={6} className="bg-light" style={{ border: "1px solid lightgrey" }}>
         {status === "loading" ? (
           <Spinner animation="border" className="mt-5" variant="primary" />
-        ) : status === "error" && !username ? (
+        ) : status === "error" && error && !username ? (
           <Row className="justify-content-between align-items-center my-3">
             <Col>{error}</Col>
             <Col xs="auto">
@@ -94,7 +122,7 @@ export default function ProfileMidBody() {
               </Button>
             </Col>
           </Row>
-        ) : status === "error" && username ? (
+        ) : status === "error" && error && username ? (
           <>
             <Row className="align-items-center">
               <Col sm="auto">
@@ -111,7 +139,7 @@ export default function ProfileMidBody() {
             </Row>
             <div className="my-3">{error}</div>
           </>
-        ) : status === "success" ? (
+        ) : status === "success" && profile ? (
           <>
             <Row className="align-items-center">
               <Col sm="auto">
@@ -129,9 +157,9 @@ export default function ProfileMidBody() {
                   {profile && profile.name}
                 </div>
                 <div className="text-secondary" style={{ fontSize: 14 }}>
-                  {posts && posts.length > 1
-                    ? `${posts.length} posts`
-                    : `${posts.length} post`}
+                  {combinedData && combinedData.length > 1
+                    ? `${combinedData.length} posts`
+                    : `${combinedData.length} post`}
                 </div>
               </Col>
             </Row>
@@ -220,19 +248,30 @@ export default function ProfileMidBody() {
             {loading && (
               <Spinner animation="border" className="ms-3 mt-3" variant="primary" />
             )}
-            {posts && posts.length > 0 && posts.map((post) => (
-              <ProfilePostCard
-                key={post.id}
-                post={post}
-                user={profile}
-                userId={profile && profile.id ? profile.id : currentUserId}
-                clickable={true}
-              />
+            {combinedData && combinedData.length > 0 && combinedData.map((data) => (
+              data.type === "post" ? (
+                <ProfilePostCard
+                  key={`post-${data.id}`}
+                  post={data}
+                  user={profile}
+                  clickable={true}
+                  retweeted={false}
+                />
+              ) : (
+                <ProfileRetweetCard
+                  key={`retweet-${data.id}`}
+                  retweet={data}
+                  user={profile}
+                  userId={profile && profile.id ? profile.id : currentUserId}
+                />
+              )
             ))}
           </>
         ) : null}
       </Col>
-      <ProfileEditModal show={show} handleClose={handleClose} userId={currentUserId} profile={profile} />
+      {profile && (
+        <ProfileEditModal show={show} handleClose={handleClose} userId={currentUserId} profile={profile} />
+      )}
     </>
   );
 }

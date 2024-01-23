@@ -4,16 +4,18 @@ import { deletePost } from "../features/posts/postsSlice";
 import { useContext } from "react";
 import { AuthContext } from "./AuthProvider";
 import { deleteAllCommentOfAPost } from "../features/comments/commentsSlice";
+import { removeAllRetweetsByPost } from "../features/retweets/retweetsSlice";
 
 export default function DeletePostModal({ show, handleClose, postId }) {
   const dispatch = useDispatch();
   const { currentUser } = useContext(AuthContext);
   const userId = currentUser ? currentUser.uid : null;
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     // Delete the comments under the post
-    dispatch(deleteAllCommentOfAPost({ userId, postId }));
-    dispatch(deletePost({ userId, postId }));
+    await dispatch(deleteAllCommentOfAPost({ userId, postId }));
+    await dispatch(removeAllRetweetsByPost({ userId, postId }));
+    await dispatch(deletePost({ userId, postId }));
   };
 
   return (

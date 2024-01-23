@@ -2,23 +2,26 @@ import { useContext, useEffect, useState } from "react";
 import { Button, Col, Image, Row } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 import { AuthContext } from "./AuthProvider";
-import { likePost, removeLikeFromPost } from "../features/posts/postsSlice";
+import { fetchRetweetsByPost, likePost, removeLikeFromPost, removeRetweetFromPost, retweetPost } from "../features/posts/postsSlice";
 import UpdatePostModal from "./UpdatePostModal";
 import DeletePostModal from "./DeletePostModal";
 import { fetchCommentByPost } from "../features/comments/commentsSlice";
 import NewCommentModal from "./NewCommentModal";
 import { useNavigate } from "react-router-dom";
+import { saveRetweetPost, unsaveRetweetPost } from "../features/retweets/retweetsSlice";
 
-export default function ProfilePostCard({ post, user, userId, clickable }) {
-  const { username, name, profileImageUrl } = user;
+export default function ProfilePostCard({ post, user, currentUserDetails, clickable, retweetId }) {
+  const { id: userId, username, name, profileImageUrl } = user;
   const { content, id: postId, imageUrl, createdAt } = post;
 
   const [likes, setLikes] = useState(post.likes || []);
+  const [isRetweeted, setIsRetweeted] = useState(false);
   const [postCreatedAt, setPostCreatedAt] = useState("");
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const comments = useSelector((state) => state.comments[postId]);
+  const retweets = useSelector((state) => state.posts.retweets[postId]);
 
   const { currentUser } = useContext(AuthContext);
   const currentUserId = currentUser ? currentUser.uid : null;
@@ -36,20 +39,32 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
   const handleClose = () => setShowModal(null);
 
   const handleLike = () => (isLiked ? removeFromLikes() : addToLikes());
+  const handleRetweet = () => (isRetweeted ? removeFromRetweets() : addToRetweets());
 
   // Add userId to likes array
   const addToLikes = () => {
     setLikes([...likes, currentUserId]);
-    dispatch(likePost({ currentUserId, postId }));
+    dispatch(likePost({ userId: currentUserId, authorUserId: userId, postId }));
   };
 
   // Remove userId from likes array and update the backend
   const removeFromLikes = () => {
     setLikes(likes.filter((id) => id !== currentUserId));
-    dispatch(removeLikeFromPost({ currentUserId, postId }));
+    dispatch(removeLikeFromPost({ userId: currentUserId, authorUserId: userId, postId }));
+  };
+
+  const addToRetweets = () => {
+    dispatch(retweetPost({ userId: currentUserId, authorUserId: userId, postId }));
+    dispatch(saveRetweetPost({ userId: currentUserId, authorUserId: userId, postId }));
+  };
+
+  const removeFromRetweets = () => {
+    dispatch(unsaveRetweetPost({ userId: currentUserId, retweetId, postId }));
+    dispatch(removeRetweetFromPost({ userId: currentUserId, authorUserId: userId, postId }));
   };
 
   useEffect(() => {
+    dispatch(fetchRetweetsByPost({ userId, postId }));
     dispatch(fetchCommentByPost({ userId, postId }));
 
     const getPostCreatedTime = () => {
@@ -99,12 +114,21 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
     return () => clearInterval(intervalId);
   }, [clickable, createdAt, dispatch, postId, userId]);
 
-  const handleNavigateUser = () => {
-    if (userId !== currentUserId) {
-      navigate(`/profile/${username}`);
+  useEffect(() => {
+    if (retweets) {
+      setIsRetweeted(retweets.includes(currentUserId));
+    }
+  }, [currentUserId, retweets]);
+
+  const handleNavigateUser = (userId) => {
+    if (userId === currentUserId) {
+      navigate(`/profile`);
+    }
+    else if (currentUserDetails && userId === currentUserDetails.id) {
+      navigate(`/profile/${currentUserDetails.username}`);
     }
     else {
-      navigate("/profile");
+      navigate(`/profile/${username}`);
     }
   };
 
@@ -113,7 +137,10 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
   };
 
   return (
-    <div style={{ cursor: clickable && "pointer" }} onClick={clickable ? handleNavigatePost : null}>
+    <div
+      style={{ cursor: clickable && "pointer" }}
+      onClick={clickable && showModal === null ? handleNavigatePost : null}
+    >
       <Row
         className="p-3"
         style={{
@@ -121,18 +148,36 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
           borderBottom: "1px solid #D3D3D3"
         }}
       >
+        {retweetId &&
+          <Row className="text-secondary">
+            <Col sm={1}>
+              <i className="bi bi-repeat"></i>
+            </Col>
+            <Col>
+              <span
+                className="text-link active"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNavigateUser(currentUserDetails.id);
+                }}
+              >
+                {currentUserDetails.name} retweeted
+              </span>
+            </Col>
+          </Row>
+        }
         {clickable ? (
-          <Col sm={1} className="px-0">
+          <Col sm={1} className="px-0 text-center">
             {profileImageUrl ? (
               <Image
-                className="object-fit-cover mx-auto darker"
+                className="object-fit-cover darker"
                 height={40}
                 roundedCircle
                 src={profileImageUrl}
                 width={40}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleNavigateUser();
+                  handleNavigateUser(userId);
                 }}
               />
             ) : (
@@ -145,7 +190,7 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleNavigateUser();
+                  handleNavigateUser(userId);
                 }}
               >
               </div>
@@ -162,7 +207,7 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
                 width={40}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleNavigateUser();
+                  handleNavigateUser(userId);
                 }}
               />
             ) : (
@@ -175,7 +220,7 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleNavigateUser();
+                  handleNavigateUser(userId);
                 }}
               >
               </div>
@@ -185,7 +230,7 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
                 className="fw-bold text-link active"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleNavigateUser();
+                  handleNavigateUser(userId);
                 }}
               >
                 {name}
@@ -194,7 +239,7 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
                 className="text-secondary text-link"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleNavigateUser();
+                  handleNavigateUser(userId);
                 }}
               >
                 @{username}
@@ -210,7 +255,7 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
                 className="text-link active"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleNavigateUser();
+                  handleNavigateUser(userId);
                 }}
               >
                 {name}
@@ -219,7 +264,7 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
                 className="text-secondary text-link"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleNavigateUser();
+                  handleNavigateUser(userId);
                 }}
               >
                 @{username}
@@ -243,8 +288,19 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
               <i className="bi bi-chat me-1"></i>
               {comments && comments.length}
             </Button>
-            <Button variant="light">
-              <i className="bi bi-repeat"></i>
+            <Button
+              variant="light"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRetweet();
+              }}
+            >
+              {isRetweeted ? (
+                <i className="bi bi-repeat text-success me-1"></i>
+              ) : (
+                <i className="bi bi-repeat me-1"></i>
+              )}
+              {retweets && retweets.length}
             </Button>
             <Button
               variant="light"
@@ -309,6 +365,6 @@ export default function ProfilePostCard({ post, user, userId, clickable }) {
         </Col>
       </Row>
     </div>
-  )
+  );
 }
 
