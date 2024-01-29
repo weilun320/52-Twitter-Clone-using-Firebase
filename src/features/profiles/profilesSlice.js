@@ -98,7 +98,15 @@ export const saveProfile = createAsyncThunk(
         }
 
         const userProfileDocRef = doc(usersRef, userId);
-        await setDoc(userProfileDocRef, { username, name, bio, profileImageUrl, bannerImageUrl });
+        const userProfileDoc = await getDoc(userProfileDocRef);
+        const userProfileData = userProfileDoc.data();
+        await setDoc(userProfileDocRef, {
+          username,
+          name,
+          bio,
+          profileImageUrl: profileImageUrl ? profileImageUrl : userProfileData.profileImageUrl,
+          bannerImageUrl: bannerImageUrl ? bannerImageUrl : userProfileData.bannerImageUrl,
+        });
       }
       else {
         return rejectWithValue("Username has been taken, please try another username.");
