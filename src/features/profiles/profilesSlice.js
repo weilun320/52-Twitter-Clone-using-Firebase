@@ -104,8 +104,8 @@ export const saveProfile = createAsyncThunk(
           username,
           name,
           bio,
-          profileImageUrl: profileImageUrl ? profileImageUrl : userProfileData.profileImageUrl,
-          bannerImageUrl: bannerImageUrl ? bannerImageUrl : userProfileData.bannerImageUrl,
+          profileImageUrl: profileImageFile !== null ? profileImageUrl : userProfileData.profileImageUrl,
+          bannerImageUrl: bannerImageFile !== null ? bannerImageUrl : userProfileData.bannerImageUrl,
         });
       }
       else {
